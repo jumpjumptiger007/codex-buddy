@@ -2,9 +2,9 @@
   <a href="codex-ambient-dashboard.zh_CN.md">简体中文</a> · <strong>English</strong>
 </p>
 
-# Codex Ambient Dashboard: Architecture and Phase 1 Gates
+# Codex Ambient Dashboard: Architecture and Delivery Gates
 
-This document records the frozen architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. It ends before Passport product firmware or UI implementation.
+This document records the architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. Phase 2 U0/U1 establishes the Passport application-model contract and host-testable mapping; it still ends before the LVGL product screen.
 
 ## Product boundary and platform
 
@@ -27,9 +27,27 @@ Codex state is `OFFLINE`, `IDLE`, `WORKING`, `ATTENTION`, or `DONE`. The voice o
 
 Normalize persisted rollout `rate_limits.primary` and `rate_limits.secondary` by `window_minutes` (300 minutes and 10080 minutes), using only source-provided usage and reset data. A window is unavailable at or past its `reset_at` boundary; never estimate quota from token counts. Define an `AppServerQuotaSource` interface, but keep its real adapter unavailable until safe transport and request framing are verified. Persist only bounded reset-detector state with atomic replacement; missing or corrupt state must safely re-baseline.
 
+## Phase 2 Passport UI contract (U0/U1)
+
+`main/passport_ui_model.*` maps normalized synthetic/mock input into a fixed-size Passport view model. It has no ESP-IDF, LVGL, BLE, or heap dependency. Project text is limited to 47 bytes and activity text to 95 bytes; an over-limit field is rejected in full and reported as rejected. This input is not a BLE payload or wire schema.
+
+The future product UI uses one persistent root view backed by the latest Companion snapshot. Companion supplies the already-normalized lifecycle; Passport does not aggregate Codex sessions. Lifecycle and voice overlay remain separate; listening can change the character presentation without changing lifecycle truth, and attention retains character priority over listening. Explicit failed or aborted outcomes cannot map to `DONE`. Each quota window has independent available/unavailable state for 300 and 10080 minutes; the model copies only source-provided used/remaining percentages and reset time/marker. It never derives quota from token counts. Attention, completion, reliable error, quota reset, and generic connection-loss notices are separate one-shot presentation facts. The caller controls their display duration; the model owns no timer or task.
+
+The exact BLE implementation details remain open as listed below. The U0/U1 application model is transport-neutral and does not define or depend on those wire details. U2 must re-read the current display/LVGL/BSP implementation and relevant tests before implementing the 240 × 320 product layout.
+
+### Verified current display and input constraints for U2
+
+These facts were checked against `bsp_display.h`, `bsp_display_lvgl.c`, `bsp_pins.h`, `bsp_button.h`, their BSP implementations, `test_bsp_display_rounding.c`, `test_bsp_lvgl_init.c`, `test_bsp_button.c`, `sdkconfig.defaults`, and the display/button sections of the hardware guide. Current code and tests take precedence over older notes.
+
+- The current BSP configures an ST7789P3 panel at logical 240 × 320 portrait, RGB565, on SPI2 using MOSI-only, 80 MHz, mode 0. Color inversion is enabled, reset is software-only, and panel gap is `(0, 0)`. The LVGL registration keeps `swap_xy`, `mirror_x`, and `mirror_y` false and swaps RGB565 bytes for SPI order.
+- The final RGB565 flush masks a global 30 px rounded rectangle; pixels outside its visible row spans are cleared to black. Keep persistent content out of the masked pixels. No larger safe inset is specified. The AI guide places battery SOC in the top-right by default, omits it when `bsp_battery_soc()` returns `-1`, and says not to overlap application content.
+- The current LVGL registration uses one DMA buffer for 240 × 40 RGB565 pixels (19,200 bytes, about 19.2 kB) with `double_buffer=false`. The ESP32-C3 has no PSRAM; `sdkconfig.defaults` selects 16-bit LVGL color and a separate 24 KB LVGL pool. Review internal RAM, the largest contiguous block, and I2S DMA before adding buffers or large assets.
+- The BSP exposes UP, DOWN, and OK from one ADC ladder, with `PRESS`, `CLICK`, `DOUBLE`, and `LONG` events and 180 ms short/500 ms long timing. A separate hardware power button is not one of those BSP controls. Button callbacks run in the shared `esp_timer` task and must enqueue bounded work; they must not access LVGL. These facts do not assign product actions to the buttons.
+- The current implementation and host tests are authoritative if older guide text differs. U2 must re-check these files and tests before layout work; this inventory does not define exact text safe areas, fonts, or rendering behavior beyond the code above.
+
 ## BLE, voice, and data boundaries
 
-Use a project-owned 128-bit BLE service. `CONTROL` flows from Mac Companion to Passport; `EVENT` and `AUDIO` flow from Passport to Mac Companion. Control messages use bounded newline-delimited JSON; audio uses a bounded binary format. Exact UUID values, schemas, frame limits, and other wire details remain to be established from measured requirements before implementation.
+Use a project-owned 128-bit BLE service. `CONTROL` flows from Mac Companion to Passport; `EVENT` and `AUDIO` flow from Passport to Mac Companion. Control messages use bounded newline-delimited JSON; audio uses a bounded binary format. Exact UUID values, characteristic/schema details, numeric payload/frame limits, and exact audio encoding remain to be established from measured requirements before implementation.
 
 The user holds OK to talk. Passport captures microphone audio but does not run STT. Mac Companion performs local STT and inserts recognized text into a verified Codex composer. It never presses Enter or otherwise submits the turn automatically. Composer selection and insertion behavior must be based on the Gate 0 Accessibility probe.
 

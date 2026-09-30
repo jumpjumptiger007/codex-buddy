@@ -2,9 +2,9 @@
   <strong>简体中文</strong> · <a href="codex-ambient-dashboard.md">English</a>
 </p>
 
-# Codex Ambient Dashboard：架构与第一阶段门禁
+# Codex Ambient Dashboard：架构与交付门禁
 
-本文记录 Codex Ambient Dashboard 已冻结的架构和交付门禁。第一阶段包括架构、真实环境验证、可进行主机测试的核心逻辑，以及 Mac Companion 真值层；本阶段在实现 Passport 产品固件或 UI 之前结束。
+本文记录 Codex Ambient Dashboard 的架构和交付门禁。第一阶段包括架构、真实环境验证、可进行主机测试的核心逻辑，以及 Mac Companion 真值层。第二阶段 U0/U1 建立 Passport 应用模型契约和可进行主机测试的映射；此阶段仍在 LVGL 产品屏幕实现之前结束。
 
 ## 产品边界与平台
 
@@ -27,9 +27,27 @@ Codex 状态为 `OFFLINE`、`IDLE`、`WORKING`、`ATTENTION` 或 `DONE`。语音
 
 按 `window_minutes`（短窗口 300 分钟、长窗口 10080 分钟）归一化持久化 rollout `rate_limits.primary` 和 `rate_limits.secondary`，只使用数据源提供的用量和重置数据。在 `reset_at` 边界及之后，该窗口不可用；绝不得根据 token 数量估算配额。定义 `AppServerQuotaSource` 接口，但在安全的 transport 和 request framing 得到验证之前，真实 adapter 保持不可用。只通过原子替换持久化有界的 reset detector 状态；状态文件缺失或损坏时必须安全地重新建立基线。
 
+## 第二阶段 Passport UI 契约（U0/U1）
+
+`main/passport_ui_model.*` 将已归一化的合成/mock 输入映射为固定大小的 Passport view model。它不依赖 ESP-IDF、LVGL、BLE 或堆分配。项目文本最多 47 字节，活动文本最多 95 字节；超长字段会整体拒绝并报告拒绝状态。该输入不是 BLE payload 或 wire schema。
+
+未来产品 UI 使用单一持久化根视图，并以最新 Companion 快照为依据。Companion 提供已归一化的生命周期；Passport 不聚合 Codex session。生命周期与语音覆盖层保持独立；聆听状态可以改变角色呈现，但不能改变生命周期真值，且 attention 在角色呈现上优先于聆听。明确失败或中止的结果不得映射为 `DONE`。300 分钟和 10080 分钟两个配额窗口分别拥有可用/不可用状态；模型只复制数据源提供的已用/剩余百分比和重置时间/标记，不根据 token 数量推导配额。Attention、完成、可靠错误、配额重置和通用连接丢失通知是独立的一次性呈现事实。其显示时长由调用方管理；模型不拥有 timer 或 task。
+
+确切的 BLE 实现细节仍按下文所列保持开放。U0/U1 应用模型与传输无关，不定义也不依赖这些线协议细节。U2 在实现 240 × 320 产品布局前，必须重新读取当前显示、LVGL、BSP 实现及相关测试。
+
+### 已核实的 U2 显示和输入约束
+
+这些事实已根据 `bsp_display.h`、`bsp_display_lvgl.c`、`bsp_pins.h`、`bsp_button.h`、对应 BSP 实现、`test_bsp_display_rounding.c`、`test_bsp_lvgl_init.c`、`test_bsp_button.c`、`sdkconfig.defaults` 以及硬件 guide 中直接相关的显示/按键章节进行核实。当前代码和测试优先于旧版说明。
+
+- 当前 BSP 将 ST7789P3 面板配置为逻辑分辨率 240 × 320 竖屏、RGB565，使用 SPI2、MOSI-only、80 MHz、mode 0。颜色反转已启用，复位仅使用软件方式，panel gap 为 `(0, 0)`。LVGL 注册保持 `swap_xy`、`mirror_x`、`mirror_y` 为 false，并为 SPI 字节顺序交换 RGB565 字节。
+- 最终 RGB565 flush 会套用全局 30 px 圆角遮罩；可见行范围以外的像素会清为黑色。持久内容应避开被遮罩的像素。当前没有定义更大的安全内边距。AI guide 默认将电池 SOC 放在右上角；当 `bsp_battery_soc()` 返回 `-1` 时不显示数字，并要求不要与应用内容重叠。
+- 当前 LVGL 注册使用一个 DMA 缓冲区，容纳 240 × 40 个 RGB565 像素（19,200 字节，约 19.2 kB），并设置 `double_buffer=false`。ESP32-C3 没有 PSRAM；`sdkconfig.defaults` 选择 16-bit LVGL 颜色和独立的 24 KB LVGL 内存池。添加缓冲区或大素材前，应检查内部 RAM、最大连续内存块和 I2S DMA。
+- BSP 通过一个 ADC 阶梯输入提供 UP、DOWN 和 OK，事件为 `PRESS`、`CLICK`、`DOUBLE` 和 `LONG`，短按/长按时间分别为 180 ms/500 ms。另有一个独立的硬件电源键，不属于这三个 BSP 控件。按键回调运行于共享的 `esp_timer` task，只能加入有界工作队列，不能访问 LVGL。这些事实尚未为产品按键分配具体操作。
+- 如果旧版 guide 文本不同，以当前实现和主机测试为准。U2 在开始布局前必须重新核对这些文件和测试；本清单不规定确切的文本安全区、字体或代码未证实的渲染行为。
+
 ## BLE、语音与数据边界
 
-使用项目自有的 128 位 BLE service。`CONTROL` 从 Mac Companion 流向 Passport；`EVENT` 和 `AUDIO` 从 Passport 流向 Mac Companion。控制消息采用有界、按行分隔的 JSON；音频采用有界二进制格式。确切的 UUID 值、schema、frame 上限和其他线协议细节，必须先依据实测需求确定再实现。
+使用项目自有的 128 位 BLE service。`CONTROL` 从 Mac Companion 流向 Passport；`EVENT` 和 `AUDIO` 从 Passport 流向 Mac Companion。控制消息采用有界、按行分隔的 JSON；音频采用有界二进制格式。确切 UUID 值、characteristic/schema 细节、数值型 payload/frame 上限及确切音频编码，仍需依据实测需求确定后再实现。
 
 用户按住 OK 说话。Passport 负责采集麦克风音频，但不运行 STT。Mac Companion 在本地执行 STT，并将识别出的文本插入已验证的 Codex composer。不得自动按 Enter 或以其他方式自动提交 turn。Composer 的选择和文本插入方式必须以 Gate 0 的 Accessibility 探测结果为依据。
 
