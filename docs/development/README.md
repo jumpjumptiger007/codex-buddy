@@ -8,6 +8,7 @@ This directory contains AI Passport engineering rules and reusable workflows, gr
 
 ## AI workflow
 
+- [codex-ambient-dashboard.md](codex-ambient-dashboard.md): frozen Codex Ambient Dashboard architecture and Phase 1 delivery gates.
 - [ai-guide.md](ai-guide.md): AI-assisted development workflow.
 - [Core AI skills](../../skills/README.md): development, setup, build, device testing, and diagnosis; installation and usage examples.
 

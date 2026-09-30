@@ -24,6 +24,92 @@ run_static_checks() {
     "${actionlint_bin}" -color .github/workflows/*.yml
 
     test_dir="$(mktemp -d /tmp/ai-passport-host-tests.XXXXXX)"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core \
+        tests/test_ambient_reducer.c companion/core/ambient_reducer.c \
+        -o "${test_dir}/test_ambient_reducer"
+    "${test_dir}/test_ambient_reducer"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core \
+        tests/test_ambient_quota.c companion/core/ambient_quota.c \
+        -o "${test_dir}/test_ambient_quota"
+    "${test_dir}/test_ambient_quota"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core \
+        tests/test_ambient_protocol.c companion/core/ambient_protocol.c \
+        -o "${test_dir}/test_ambient_protocol"
+    "${test_dir}/test_ambient_protocol"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Itests \
+        tests/test_ambient_transport.c tests/ambient_fake_transport.c \
+        companion/core/ambient_transport.c \
+        -o "${test_dir}/test_ambient_transport"
+    "${test_dir}/test_ambient_transport"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Icompanion/mac \
+        tests/test_rollout_watcher.c companion/mac/rollout_watcher.c \
+        -o "${test_dir}/test_rollout_watcher"
+    "${test_dir}/test_rollout_watcher"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Icompanion/mac \
+        tests/test_rollout_quota_source.c \
+        companion/mac/rollout_quota_source.c \
+        companion/mac/app_server_quota_source.c \
+        companion/core/ambient_quota.c \
+        -o "${test_dir}/test_rollout_quota_source"
+    "${test_dir}/test_rollout_quota_source"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Icompanion/mac \
+        tests/test_quota_reset_state_store.c \
+        companion/mac/quota_reset_state_store.c \
+        companion/mac/rollout_quota_source.c \
+        companion/core/ambient_quota.c \
+        -o "${test_dir}/test_quota_reset_state_store"
+    "${test_dir}/test_quota_reset_state_store"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Icompanion/mac -Itests \
+        tests/test_companion_core.c tests/ambient_fake_transport.c \
+        companion/mac/companion_core.c \
+        companion/mac/rollout_watcher.c \
+        companion/mac/rollout_quota_source.c \
+        companion/mac/quota_reset_state_store.c \
+        companion/core/ambient_reducer.c \
+        companion/core/ambient_protocol.c \
+        companion/core/ambient_dedup.c \
+        companion/core/ambient_quota.c \
+        companion/core/ambient_transport.c \
+        -o "${test_dir}/test_companion_core"
+    "${test_dir}/test_companion_core"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/mac \
+        tests/test_permission_observer.c companion/mac/permission_observer.c \
+        -o "${test_dir}/test_permission_observer"
+    "${test_dir}/test_permission_observer"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/mac \
+        tests/test_stt_backend.c companion/mac/stt_backend.c \
+        -o "${test_dir}/test_stt_backend"
+    "${test_dir}/test_stt_backend"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/mac \
+        tests/test_composer_injection.c companion/mac/composer_injection.c \
+        -o "${test_dir}/test_composer_injection"
+    "${test_dir}/test_composer_injection"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/core -Icompanion/mac \
+        tests/test_gate2_integration.c \
+        companion/mac/companion_core.c \
+        companion/mac/permission_observer.c \
+        companion/mac/stt_backend.c \
+        companion/mac/composer_injection.c \
+        companion/mac/rollout_watcher.c \
+        companion/mac/rollout_quota_source.c \
+        companion/mac/quota_reset_state_store.c \
+        companion/core/ambient_reducer.c \
+        companion/core/ambient_protocol.c \
+        companion/core/ambient_dedup.c \
+        companion/core/ambient_quota.c \
+        companion/core/ambient_transport.c \
+        -o "${test_dir}/test_gate2_integration"
+    "${test_dir}/test_gate2_integration"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core \
+        tests/test_ambient_dedup.c companion/core/ambient_dedup.c \
+        -o "${test_dir}/test_ambient_dedup"
+    "${test_dir}/test_ambient_dedup"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
         tests/test_ui_pixel_math.c main/ui_pixel_math.c \
         -o "${test_dir}/test_ui_pixel_math"

@@ -17,6 +17,7 @@
 
 ## AI 工作流
 
+- [codex-ambient-dashboard.zh_CN.md](codex-ambient-dashboard.zh_CN.md)：Codex Ambient Dashboard 已冻结的架构与第一阶段交付门禁。
 - [ai-guide.zh_CN.md](ai-guide.zh_CN.md)：AI 开发工作流（面向 AI 编程助手：上下文建立、需求拆解、BSP 边界、验收交付格式）。
 - [核心 AI 技能](../../skills/README.zh_CN.md)：开发、环境准备、构建、真机测试及诊断，包含安装和使用示例。
 

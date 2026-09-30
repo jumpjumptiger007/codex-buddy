@@ -4,93 +4,57 @@
 
 # Repository Guidelines for AI Agents
 
-This file is the only mandatory entry point for AI-assisted work in this repository. Read task-specific documents from the routing table below; do not load every README by default.
+This file is the durable entry point for AI-assisted work in this repository. Keep stable architecture and detailed design in project documentation; keep these instructions concise and operational.
 
-## Required AI skills
+## Product and hardware boundaries
 
-The following five skills are required for AI-assisted development in this repository:
-`passport-develop`, `passport-setup`, `passport-build`, `passport-device-test`, and
-`passport-debug`. Their maintained sources are under `skills/`.
-
-Before starting development, the AI must check that all five are installed and
-available in its current environment. If any are missing, the AI must choose an
-appropriate installation method for its tool and environment, perform the
-installation, and verify availability itself. Do not wait for the user to request
-installation or make the user choose the method or run installation commands.
-No particular script, installation directory, or AI client is mandatory.
-
-Respect the environment's approval requirements and preserve existing skills
-and user configuration. If permissions, conflicts, or platform limitations prevent
-installation, explain the blocker and request only the necessary user action;
-do not claim installation succeeded. Having all five available does not mean
-loading or invoking all five for every task: use only the matching skills, and
-retain the separate authorization requirements for flashing, Git writes, and publishing.
-
-## Project and safety baseline
-
-- Target: ESP32-C3, 8 MB Flash, no PSRAM, ESP-IDF 5.5.3.
-- Keep the repository's default partition table minimal: NVS, PHY data, and
-  one factory application spanning the rest of the 8 MB Flash. User firmware
-  may deliberately change this layout; validate the resulting table and do not
-  turn product-specific partitions into mandatory template contracts.
-- Preserve existing user changes. Start with `git status --short --branch`; never overwrite or clean unrelated files.
-- Flashing new firmware does not require backing up the firmware already on the device; do not make a Flash readback a prerequisite. This does not guarantee preservation of user data or authorize a full-chip erase. Follow the [flashing and data policy](docs/development/engineering/firmware-layout.md#flashing-and-stored-data).
-- Hardware facts follow this priority: product specifications and measured results → `components/bsp/include/bsp_pins.h` → BSP headers and implementation → hardware guide → README/demo code. If a task requires a hardware detail not defined by these sources, ask the user instead of guessing.
-- Reusable board logic belongs in `components/bsp`; pages, state machines, animations, and application tasks belong in `main`.
-- Derivative applications must redesign and implement their own UI. Reusing the current demo test menu, screens, or visual shell is prohibited; renaming, recoloring, or adding a feature to that shell does not count as a redesign. BSP APIs and non-UI logic remain reusable. See the [mandatory UI redesign rule](docs/development/ai-guide.md#mandatory-ui-redesign-for-derivative-applications).
+- Keep AI Passport a thin client. Passport owns display/UI, character animation, buttons, microphone capture, speaker cues, BLE transport, and small deterministic state/reducer logic. Mac Companion owns Codex integration, quota acquisition, Codex lifecycle interpretation, notification generation, local STT, Codex composer text injection, and BLE reconnect/orchestration. Do not move Codex-specific parsing or heavy/volatile desktop integrations onto the ESP32 without an explicit architecture decision. Record stable boundary decisions in project architecture documentation.
+- Target hardware is ESP32-C3 with 8 MB Flash, no PSRAM, and ESP-IDF 5.5.3. Budget internal RAM accordingly.
+- Preserve the valid default 8 MB partition layout unless the product explicitly requires another valid and documented layout. Detailed partition policy is in `docs/development/engineering/firmware-layout.md`.
+- Keep reusable board-specific hardware capabilities in `components/bsp`; application UI, state, animation, protocol behavior, and application tasks belong outside reusable BSP code. Treat product specifications and measurements, `components/bsp/include/bsp_pins.h`, BSP headers and implementation, then the hardware guide as the sources of hardware facts. Do not guess unspecified board details.
 - LVGL is not thread-safe. Code outside the LVGL task must hold `bsp_lvgl_lock()` while accessing LVGL objects.
-- Before adding Chinese UI text, follow the [font checklist](docs/development/engineering/coding-conventions.md#chinese-fonts-and-missing-glyphs). The default Montserrat fonts have no Chinese glyphs; UTF-8 and a successful build do not prove display support. Verify glyph coverage, widget font selection, and on-device rendering.
-- Button callbacks must stay non-blocking. Audio, storage, networking, and other slow operations belong in worker tasks.
-- A demo must stop every task, timer, callback, and event handler that can access its UI before deleting the screen.
-- Keep testable state machines, protocols, timing, and layout calculations independent from ESP-IDF/LVGL and cover them with host tests.
-- Never commit credentials, device QR secrets, private keys, personal data, or unsanitized logs.
-- Every maintained Markdown document uses English at its default `.md` path and Simplified Chinese in a paired `.zh_CN.md` file. Keep both versions aligned and retain reciprocal language links.
+- Button callbacks must not block. Move audio, storage, networking, and other slow work to worker tasks.
+- Stop tasks, timers, callbacks, and other producers that may access UI before destroying the affected UI.
+- Keep state, reducer, protocol, timing, and layout logic that can be tested without hardware independent of ESP-IDF and LVGL; cover applicable logic with host tests.
+- Product UI must be designed for the product requirements. Do not reuse the baseline hardware-test menu, screens, or visual shell as a product UI; BSP APIs and non-UI logic remain reusable.
 
-## Task-specific context routing
+## Safety, data, and distributable assets
 
-| Task | Read before editing |
-| --- | --- |
-| Any code change | `docs/development/ai-guide.md`, relevant headers and neighboring implementation |
-| Application workflow or core skill setup | `skills/README.md`; ensure the five required skills are available, then use only the matching skill |
-| Environment bootstrap or missing toolchain | `docs/development/engineering/environment-setup.md` |
-| BSP, pins, buses, display, audio, battery | `docs/hardware-design/AI_HARDWARE_DEVELOPMENT_GUIDE.md`, `components/bsp/include/bsp_pins.h` |
-| Demo or menu | `main/demo.h`, `main/main.c`, the nearest `main/demo_*.c` implementation |
-| Chinese UI text or fonts | `docs/development/engineering/lvgl-chinese-fonts.md`, the application's font assets, configuration, and widget styles |
-| Wi-Fi connection or Bluetooth provisioning | `docs/development/engineering/wifi-provisioning.md`, the referenced `demo/blufi-provisioning` implementation |
-| Build, test, dependencies, partitions | `docs/development/engineering/build-and-test.md`, `docs/development/engineering/firmware-layout.md`, `sdkconfig.defaults`, `partitions.csv` |
-| CI or release | the matching file in `docs/development/ci/CI-*.md` and `.github/workflows/` |
-| Project completion | `docs/development/release/project-completion.md` (then the `issue-suggestions` or `experience-pr` skill) |
-| Documentation | `docs/contribution/doc-conventions.md`, `docs/README.md` |
-| Commit or PR | `docs/contribution/commit-and-pr.md` |
+- Passport is a product device, not an approval controller. Do not use its UI or BLE connection to grant repository, agent, deployment, or other privileged-operation approval.
+- Keep BLE payloads, buffers, queues, and retained data explicitly bounded. Validate lengths and formats before parsing; transmit only data needed for the active feature. Do not send arbitrary prompts, transcripts, shell commands, diffs, tool output, assistant content, authentication material, or secrets to Passport. This does not prohibit a later explicitly modeled voice-audio transport or bounded project/status fields. Do not log or commit credentials, private user/device data, or unsanitized logs.
+- Public character engine/code and public example assets must remain distributable. Spider-Man and any other private or non-distributable character assets must never enter public Git history or public releases.
+- Before introducing any private/local character source pack, explicitly protect its source path in `.gitignore`. Do not decide that path in this file. Generated public assets must never silently derive from private, non-distributable sources.
 
-Use `docs/README.md` for the product overview and the documentation index. For the detailed AI development workflow — context setup, source-of-truth priority, application/BSP boundary, runtime invariants, material placement, and delivery format — read `docs/development/ai-guide.md`. Fork-specific workflow is in `docs/fork-guide.md` and is not required for ordinary upstream development.
+## Required Passport skills
 
-## Required validation and delivery
+The five core skills are `passport-develop`, `passport-setup`, `passport-build`, `passport-device-test`, and `passport-debug`. Before firmware development, confirm that these skills are available and use only the skill relevant to the active task.
 
-Run the smallest relevant check while iterating, then run the complete gate before delivery:
+If a required skill or tool is unavailable, follow the active task and environment authorization boundaries. The skill requirement does not authorize changes to global or user configuration, system-package installation, or other host-environment changes.
 
-```bash
-./tools/validate.sh --static    # repository checks + host tests
-./tools/validate.sh --firmware  # ESP-IDF build + merged-image verification
-./tools/validate.sh             # complete gate
-```
+## Task routing
 
-The complete gate requires an activated ESP-IDF 5.5.3 environment. Do not describe a successful build as hardware validation. Final delivery must report these fields separately:
+- For firmware/code work, read `docs/development/ai-guide.md`, affected public headers, and neighboring implementation.
+- For board, BSP, display, audio, button, or battery work, consult the relevant hardware guide and BSP sources.
+- For build, dependency, or partition work, consult `docs/development/engineering/build-and-test.md` and `docs/development/engineering/firmware-layout.md`.
+- For maintained documentation, follow `docs/contribution/doc-conventions.md`.
+- Read only context relevant to the active task; do not mechanically load all repository documentation.
 
-```text
-Build: PASS / FAIL / NOT RUN
-Host tests: PASS / FAIL / NOT RUN
-Device tests: PASS / FAIL / NOT RUN
-Unverified: remaining board, instrument, or user checks
-```
+## Git and authorization
 
-After each complete implementation of a user-requested firmware change,
-proactively ask whether to flash it to the device for testing; do not wait for
-a release request. If no device is detected, ask the user to turn it on and
-connect it to a computer USB port with a data-capable cable. Follow the
-[on-device testing handoff](docs/development/ai-guide.md#offer-on-device-testing)
-and obtain approval before flashing; detection alone is not consent.
+- This is an independent repository, not the upstream fork workflow. `upstream` is `FoloToy/ai-passport`, used for baseline/reference synchronization and donor/demo inspection. `origin`, once configured, is this project's own repository.
+- Interpret inherited upstream/reference branch instructions against the `upstream` remote in this repository; for example, inherited `origin/demo/*` references mean `upstream/demo/*` here.
+- Check `git status --short --branch` before editing. Preserve unrelated user changes; do not overwrite, clean, or include them in a task change.
+- Do not perform destructive Git operations or rewrite shared history. Commit, push, flash, erase, deploy, release, and publish only when explicitly authorized by the active task or project workflow.
+- Never commit credentials, private character assets, personal data, or unsanitized logs.
 
-Create commits and push only when the user requests them or the active workflow explicitly requires them. Ordinary feature, application, and documentation pull requests must not edit `docs/CHANGELOG.md` or `docs/CHANGELOG.zh_CN.md`; describe user-visible behavior, compatibility, and release-flow impact in the pull-request body and authoritative documentation instead. During release preparation, the release maintainer aggregates merged user-visible changes into both changelog files before creating the tag.
+## Validation and C2C
 
-Community guidance is in `.github/CONTRIBUTING.md`, `.github/CODE_OF_CONDUCT.md`, `.github/SECURITY.md`, and `.github/SUPPORT.md`.
+- Use the repository validation entry points appropriate to the change: `./tools/validate.sh --static` for repository/host validation, `./tools/validate.sh --firmware` for firmware build validation, and `./tools/validate.sh` for the complete gate when required.
+- Run the smallest relevant checks while iterating. Documentation and pure-host changes should at least pass the applicable static validation; firmware delivery follows the firmware/full-gate policy.
+- Report `Build`, `Host tests`, `Device tests`, and `Unverified` separately.
+- When the active workflow requires C2C review, use the project-bound C2C connector and let ChatGPT inspect the actual workspace, Git state, diffs, files, and recorded execution output directly. Do not require users to paste repository file bodies, diffs, or logs that are already accessible through C2C.
+- Codex executes bounded tasks; ChatGPT performs independent review. Do not automatically continue into the next architectural task after review.
+
+## Maintained Markdown
+
+Use English at each maintained Markdown document's default `.md` path and Simplified Chinese in its paired `.zh_CN.md` file. Keep the versions aligned and retain reciprocal language-switch links.
