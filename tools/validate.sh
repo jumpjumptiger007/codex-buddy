@@ -123,10 +123,14 @@ run_static_checks() {
         tests/test_passport_ui_model.c main/passport_ui_model.c \
         -o "${test_dir}/test_passport_ui_model"
     "${test_dir}/test_passport_ui_model"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
+        tests/test_passport_ui_presenter.c main/passport_ui_presenter.c \
+        -o "${test_dir}/test_passport_ui_presenter"
+    "${test_dir}/test_passport_ui_presenter"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
         -Itests/passport_ui_stubs -Imain \
         tests/test_passport_ui_shell.c main/passport_ui_shell.c \
-        main/passport_ui_model.c \
+        main/passport_ui_model.c main/passport_ui_presenter.c \
         -o "${test_dir}/test_passport_ui_shell"
     "${test_dir}/test_passport_ui_shell"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \

@@ -4,7 +4,7 @@
 
 # Codex Ambient Dashboard: Architecture and Delivery Gates
 
-This document records the architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. Phase 2 U0/U1 establishes the Passport application-model contract and host-testable mapping; U2 adds the first persistent LVGL product shell without transport or interaction behavior.
+This document records the architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. Phase 2 U0/U1 establishes the Passport application-model contract and host-testable mapping; U2 adds the first persistent LVGL product shell, and U3 fills that shell with bounded status and quota presentation without transport or interaction behavior.
 
 ## Product boundary and platform
 
@@ -50,6 +50,12 @@ These facts were checked against `bsp_display.h`, `bsp_display_lvgl.c`, `bsp_pin
 U2 creates one persistent product root with 24 pre-created LVGL objects, within the planned 20–30 object inventory. Startup initializes the display and LVGL, enables the backlight, maps the deterministic offline model view, and creates the product shell while holding the LVGL lock. The product component builds only the application model and shell; hardware-demo sources remain available as references but are not part of product startup.
 
 The shell presents lifecycle text, a static character face, project and activity fields, two quota-availability placeholders, and hidden reusable voice and notice panels. Updates change labels on the existing objects. They do not recreate screens or allocate UI objects. This gate does not add Companion/BLE binding, button actions, microphone capture, character animation, notices, or quota percentage/reset rendering. LVGL calls from outside LVGL context require `bsp_lvgl_lock()`.
+
+## Phase 2 Passport persistent information UI (U3)
+
+U3 keeps the U2 root and character face, then presents the 300-minute and 10080-minute quota windows before lifecycle, project, and activity information. Each quota window has an explicit `NO DATA` or `AVAILABLE` state. When available, only source-provided used and/or remaining percentages are shown, rounded to whole percentages for display. When both are present, the compact pair is ordered as used/remaining, as marked by the card's `U/R%` caption; the worst-case `100/100` line is about 52.6 px in Montserrat 14 and fits the 82 px value label. The presenter never derives a missing percentage, uses token counts, or displays reset time. Out-of-range or non-finite source values suppress numeric details while preserving availability; if detailed text does not fit, the explicit availability label remains.
+
+The persistent shell has 25 LVGL objects, including one `HOLD OK TO TALK` hint. It retains bounded project/activity and quota strings in two fixed banks so each update reuses the existing root and objects. Empty, rejected, or unterminated project/activity fields render as `--`; long valid fields use LVGL's fixed-size dots mode. `OFFLINE`, `IDLE`, `WORKING`, `ATTENTION`, and `DONE` have distinct status text and status-panel colors. The hidden voice and notice panels remain placeholders. The PTT text is only a hint; U3 does not connect OK input, voice capture, BLE, Companion data, notice behavior, or U4/U5/U6 features. Calls to LVGL outside its task still require `bsp_lvgl_lock()`.
 
 ## BLE, voice, and data boundaries
 

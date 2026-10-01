@@ -5,10 +5,11 @@
 
 #include "lvgl.h"
 #include "passport_ui_model.h"
+#include "passport_ui_presenter.h"
 
 #define PASSPORT_UI_SHELL_OBJECT_MIN 20u
 #define PASSPORT_UI_SHELL_OBJECT_MAX 30u
-#define PASSPORT_UI_SHELL_OBJECT_COUNT 24u
+#define PASSPORT_UI_SHELL_OBJECT_COUNT 25u
 
 /*
  * The caller owns this shell for the lifetime of the product screen and must
@@ -36,6 +37,7 @@ typedef struct {
     lv_obj_t *weekly_quota_panel;
     lv_obj_t *weekly_quota_caption;
     lv_obj_t *weekly_quota_value;
+    lv_obj_t *ptt_hint;
     lv_obj_t *voice_panel;
     lv_obj_t *voice_label;
     lv_obj_t *toast_panel;
@@ -44,6 +46,8 @@ typedef struct {
     uint8_t text_bank;
     char project_text[2][PASSPORT_UI_PROJECT_TEXT_CAPACITY];
     char activity_text[2][PASSPORT_UI_ACTIVITY_TEXT_CAPACITY];
+    char short_quota_text[2][PASSPORT_UI_PRESENTATION_TEXT_CAPACITY];
+    char weekly_quota_text[2][PASSPORT_UI_PRESENTATION_TEXT_CAPACITY];
 } passport_ui_shell_t;
 
 #define PASSPORT_UI_SHELL_INITIALIZER {0}

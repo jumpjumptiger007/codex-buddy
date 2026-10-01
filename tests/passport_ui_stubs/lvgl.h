@@ -16,6 +16,14 @@ typedef enum {
     LV_TEXT_ALIGN_RIGHT,
 } lv_text_align_t;
 
+typedef enum {
+    LV_LABEL_LONG_MODE_WRAP = 0,
+    LV_LABEL_LONG_MODE_DOTS,
+    LV_LABEL_LONG_MODE_SCROLL,
+    LV_LABEL_LONG_MODE_SCROLL_CIRCULAR,
+    LV_LABEL_LONG_MODE_CLIP,
+} lv_label_long_mode_t;
+
 typedef struct _lv_obj_t {
     struct _lv_obj_t *parent;
     int32_t x;
@@ -23,7 +31,9 @@ typedef struct _lv_obj_t {
     int32_t width;
     int32_t height;
     lv_color_t background;
+    lv_color_t text_color;
     const char *text;
+    lv_label_long_mode_t long_mode;
     bool hidden;
     bool scrollable;
     bool deleted;
@@ -62,5 +72,6 @@ void lv_obj_set_style_text_align(lv_obj_t *object,
 void lv_obj_add_flag(lv_obj_t *object, lv_obj_flag_t flag);
 void lv_obj_remove_flag(lv_obj_t *object, lv_obj_flag_t flag);
 void lv_label_set_text_static(lv_obj_t *label, const char *text);
+void lv_label_set_long_mode(lv_obj_t *label, lv_label_long_mode_t long_mode);
 void lv_screen_load(lv_obj_t *screen);
 void lv_obj_delete(lv_obj_t *object);
