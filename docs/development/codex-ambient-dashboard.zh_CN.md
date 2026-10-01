@@ -2,108 +2,162 @@
   <strong>简体中文</strong> · <a href="codex-ambient-dashboard.md">English</a>
 </p>
 
-# Codex Ambient Dashboard：架构与交付门禁
+# Codex Ambient Dashboard：vNext 架构与 R0–R7 路线图
 
-本文记录 Codex Ambient Dashboard 的架构和交付门禁。第一阶段包括架构、真实环境验证、可进行主机测试的核心逻辑，以及 Mac Companion 真值层。第二阶段 U0/U1 建立 Passport 应用模型契约和可进行主机测试的映射；U2 增加首个持久化 LVGL 产品外壳，U3 在不加入传输或交互行为的前提下填充有界状态和配额信息。
+本文是 Codex Ambient Dashboard 的权威架构和交付路线图，取代此前的 Phase 1、Phase 2、U0–U3、G2.1–G2.5 路线图。来源级证据和模块决策见配套的 [R0 复用审计](codex-buddy-reuse-audit.zh_CN.md)。
 
-## 产品边界与平台
+R0 只进行架构、来源审计、许可核验和文档整理，不增加生产 BLE、Codex Hooks、设备服务、最终 UI 或角色素材。R0 审查完成后停止；进入 R1 必须另由 Control Room 明确决定。
 
-目标硬件为 ESP32-C3，配备 8 MB Flash、无 PSRAM，使用 ESP-IDF 5.5.3。
+## 1. 范围与已核验基线
 
-- **Passport** 负责显示和产品 UI、角色动画、按键、麦克风采集、扬声器提示、BLE 传输，以及少量确定性的状态/reducer 逻辑。
-- **Mac Companion** 负责 Codex 集成、配额获取与重置检测、生命周期解释、通知、本地语音转文字（STT）、向已验证的 Codex composer 安全插入文本，以及 BLE 重连/编排。
-- 复用上游 BSP。不得为了应用方便修改 BSP，也不得把基线硬件测试菜单或视觉外壳直接用作产品 UI。
-- Passport 是产品设备，绝不能作为仓库、agent、部署或其他特权操作的审批控制器。
+R0 审计时当前工作区基线为 codex-buddy 的 main 分支，提交 f12a6e0fbddaad0a3ba133084f37ff59a609be68；文档修改前工作树干净。附录固定了 donor 引用和完整提交 SHA。
 
-可脱离硬件测试的状态、reducer、协议和计时逻辑应与 ESP-IDF、LVGL 解耦。
+目标产品是 FoloToy AI Passport：ESP32-C3、8 MB Flash、无 PSRAM、ESP-IDF 5.5.3。当前 BSP、引脚头文件和硬件指南仍是硬件事实的来源。
 
-## 状态与真值
+当前实现证据：
 
-Codex 状态为 `OFFLINE`、`IDLE`、`WORKING`、`ATTENTION` 或 `DONE`。语音覆盖层状态为 `NONE`、`LISTENING`、`TRANSCRIBING`、`READY` 或 `FAILED`。
+- companion/core 包含可进行主机测试的生命周期 reducer、配额归一化、消息验证与行分帧、传输回调及有界通知去重。
+- companion/mac 包含持久化 rollout watcher、rollout 配额源、重置状态存储、Companion 编排，以及权限观察、STT 和 composer 插入接口。这些是主机侧模块和边界，不代表已经有生产 Codex Hook、App Server、Accessibility 或 STT adapter。
+- 当前 rollout watcher 只接受既有探测已验证的生命周期形式。未知或格式错误的输入会 fail closed。配额只来自源提供的 300 分钟和 10080 分钟 rate-limit 记录；token 数量不作为配额来源。
+- main/main.c 从与传输无关的 UI model 启动持久 Passport 外壳。main 产品目标不会启动硬件 demo 页面。demo_ble.c 只是不可连接的 demo 广播，不是产品设备链路。
+- 主机测试覆盖纯逻辑和 fake；它们不能证明真实 macOS 集成、BLE 配对、射频行为或真机验收。
 
-- `OFFLINE` 表示没有新鲜的 Companion 快照。
-- `DONE` 是时长约三秒的短暂成功提示。失败或中止的 turn 不得显示为 `DONE`。
-- Companion 快照是当前状态的真值来源。通知是一次性事件，不能替代快照状态。
+现有 Passport 合成模型仍包含 project 和 activity 文本字段，但它们不属于 vNext 线协议或产品契约，计划在产品集成门禁移除。U3 的确切卡片布局尚未冻结。紫色几何角色仍是占位图；本路线不启动旧 Character Engine 计划，也不定义最终吉祥物。
 
-按 `window_minutes`（短窗口 300 分钟、长窗口 10080 分钟）归一化持久化 rollout `rate_limits.primary` 和 `rate_limits.secondary`，只使用数据源提供的用量和重置数据。在 `reset_at` 边界及之后，该窗口不可用；绝不得根据 token 数量估算配额。定义 `AppServerQuotaSource` 接口，但在安全的 transport 和 request framing 得到验证之前，真实 adapter 保持不可用。只通过原子替换持久化有界的 reset detector 状态；状态文件缺失或损坏时必须安全地重新建立基线。
+旧架构文档中的环境探测记录是历史观察。需要这些事实的后续门禁必须重新核验，不能将过往本机探测当成当前平台事实。
 
-## 第二阶段 Passport UI 契约（U0/U1）
+## 2. 决策词汇与 R0 结果
 
-`main/passport_ui_model.*` 将已归一化的合成/mock 输入映射为固定大小的 Passport view model。它不依赖 ESP-IDF、LVGL、BLE 或堆分配。项目文本最多 47 字节，活动文本最多 95 字节；超长字段会整体拒绝并报告拒绝状态。该输入不是 BLE payload 或 wire schema。
+审计矩阵中的每个模块决策只能是以下四种之一：
 
-未来产品 UI 使用单一持久化根视图，并以最新 Companion 快照为依据。Companion 提供已归一化的生命周期；Passport 不聚合 Codex session。生命周期与语音覆盖层保持独立；聆听状态可以改变角色呈现，但不能改变生命周期真值，且 attention 在角色呈现上优先于聆听。明确失败或中止的结果不得映射为 `DONE`。300 分钟和 10080 分钟两个配额窗口分别拥有可用/不可用状态；模型只复制数据源提供的已用/剩余百分比和重置时间/标记，不根据 token 数量推导配额。Attention、完成、可靠错误、配额重置和通用连接丢失通知是独立的一次性呈现事实。其显示时长由调用方管理；模型不拥有 timer 或 task。
+- **KEEP OURS** —— 保留当前项目实现或契约，作为 vNext 基础。
+- **REUSE DONOR** —— 完成许可、来源和集成检查后，基本按原样纳入 donor 实现。
+- **ADAPT DONOR** —— 以 donor 实现为起点，按本产品契约、安全、硬件、边界或职责进行改造。
+- **DROP** —— 将该 donor 实现或数据排除在 vNext 之外。
 
-确切的 BLE 实现细节仍按下文所列保持开放。U0/U1 应用模型与传输无关，不定义也不依赖这些线协议细节。U2 在实现 240 × 320 产品布局前，必须重新读取当前显示、LVGL、BSP 实现及相关测试。
+本次矩阵共有 21 项 KEEP OURS、12 项 ADAPT DONOR、8 项 DROP，没有 REUSE DONOR。没有 donor 模块同时满足直接、原样集成的条件：有用候选要么携带不兼容的内容或审批语义，要么依赖另一个语义核心，要么必须针对当前板卡和有界契约修改。
 
-### 已核实的 U2 显示和输入约束
+架构保留当前 Companion 真值核心、多会话 reducer、结果与新鲜度语义、配额源和重置持久化、通知与快照分离、与传输无关的 UI model、BSP 边界以及 fail-closed 主机接口。它将改造许可明确的 Codex Hook 和桌面 bridge 路径、选定的 ESP-IDF NimBLE 传输与 bond 管理模式、小型设置/持久化模式、支持工具和 simulator 测试接口。设备端审批、包含内容的 Buddy 字段、旧 project/activity 投影及来源不清的角色或媒体素材会被排除。审计附录逐项解释模块决策及证据。
 
-这些事实已根据 `bsp_display.h`、`bsp_display_lvgl.c`、`bsp_pins.h`、`bsp_button.h`、对应 BSP 实现、`test_bsp_display_rounding.c`、`test_bsp_lvgl_init.c`、`test_bsp_button.c`、`sdkconfig.defaults` 以及硬件 guide 中直接相关的显示/按键章节进行核实。当前代码和测试优先于旧版说明。
+## 3. vNext 组件职责与数据流
 
-- 当前 BSP 将 ST7789P3 面板配置为逻辑分辨率 240 × 320 竖屏、RGB565，使用 SPI2、MOSI-only、80 MHz、mode 0。颜色反转已启用，复位仅使用软件方式，panel gap 为 `(0, 0)`。LVGL 注册保持 `swap_xy`、`mirror_x`、`mirror_y` 为 false，并为 SPI 字节顺序交换 RGB565 字节。
-- 最终 RGB565 flush 会套用全局 30 px 圆角遮罩；可见行范围以外的像素会清为黑色。持久内容应避开被遮罩的像素。当前没有定义更大的安全内边距。AI guide 默认将电池 SOC 放在右上角；当 `bsp_battery_soc()` 返回 `-1` 时不显示数字，并要求不要与应用内容重叠。
-- 当前 LVGL 注册使用一个 DMA 缓冲区，容纳 240 × 40 个 RGB565 像素（19,200 字节，约 19.2 kB），并设置 `double_buffer=false`。ESP32-C3 没有 PSRAM；`sdkconfig.defaults` 选择 16-bit LVGL 颜色和独立的 24 KB LVGL 内存池。添加缓冲区或大素材前，应检查内部 RAM、最大连续内存块和 I2S DMA。
-- BSP 通过一个 ADC 阶梯输入提供 UP、DOWN 和 OK，事件为 `PRESS`、`CLICK`、`DOUBLE` 和 `LONG`，短按/长按时间分别为 180 ms/500 ms。另有一个独立的硬件电源键，不属于这三个 BSP 控件。按键回调运行于共享的 `esp_timer` task，只能加入有界工作队列，不能访问 LVGL。这些事实尚未为产品按键分配具体操作。
-- 如果旧版 guide 文本不同，以当前实现和主机测试为准。U2 在开始布局前必须重新核对这些文件和测试；本清单不规定确切的文本安全区、字体或代码未证实的渲染行为。
+目标数据流：
 
-## 第二阶段 Passport 产品外壳（U2）
+Codex 生命周期 Hook 与已验证的配额源 → Mac Companion adapters → 每会话生命周期与配额真值 → 有界、无内容快照和一次性事件契约 → 安全 BLE 传输 → Passport 解析器/model/presenter/持久 UI。
 
-U2 创建一个持久化产品根视图，包含 24 个预先创建的 LVGL 对象，处于规划的 20–30 个对象范围内。启动时初始化显示和 LVGL、打开背光、映射确定性的离线模型视图，并在持有 LVGL 锁时创建产品外壳。产品组件只构建应用模型和外壳；硬件 demo 源码仍可作参考，但不参与产品启动。
+语音数据流单独处理：用户明确按住 Passport 的 push-to-talk 按键后，设备进行有界音频采集 → 安全 BLE 将音频传到 Mac Companion → 本地 STT 返回文本 → Companion 只向一个已验证的 Codex composer 目标插入文本。用户检查并提交 Codex turn。没有任何组件会按 Enter 或以其他方式自动提交。
 
-外壳显示生命周期文字、静态角色图形、项目和活动字段、两个配额可用性占位，以及默认隐藏、可复用的语音和通知面板。更新只修改现有对象的标签，不重建屏幕或分配 UI 对象。本阶段不实现 Companion/BLE 绑定、按键操作、麦克风采集、角色动画、通知行为，也不显示配额百分比或重置时间。在 LVGL 上下文以外调用 LVGL 时，必须持有 `bsp_lvgl_lock()`。
+### Mac Companion
 
-## 第二阶段 Passport 持久信息 UI（U3）
+Companion 负责易变的 Codex/macOS 集成、官方 Hook 安装与生命周期映射、多会话聚合、源提供的配额获取与重置检测、桌面启动/恢复、通知生成、本地 STT、composer 验证/插入和 BLE 连接编排。
 
-U3 保留 U2 的根视图和角色图形，并将 300 分钟与 10080 分钟配额窗口放在生命周期、项目和活动信息之前。每个配额窗口明确显示 `NO DATA` 或 `AVAILABLE`。可用时仅展示数据源实际提供的已用和/或剩余百分比，显示时四舍五入到整数。两项都存在时，紧凑数值按已用/剩余顺序显示，标题用 `U/R%` 标明；最坏情况 `100/100` 在 Montserrat 14 字体中约宽 52.6 px，可放入 82 px 的数值标签。presenter 不推导缺失百分比、不使用 token 数量，也不显示重置时间。数据源数值超出范围或不是有限数时，会隐藏数值但保留可用状态；详细数值放不下时也保留明确的可用状态标签。
+Companion 是唯一的生命周期聚合真值源。会话和 turn 标识留在 Mac，仅映射为有界的不透明状态。未知事件、过期数据源、不支持的权限信号和格式错误记录均 fail closed。失败与中止必须和成功完成区分开。
 
-持久外壳共有 25 个 LVGL 对象，其中包括一个 `HOLD OK TO TALK` 提示。项目/活动和配额字符串使用两个固定缓冲区，更新时复用既有根视图和对象。空白、被拒绝或未终止的项目/活动字段显示为 `--`；较长的有效字段使用 LVGL 固定尺寸的省略点模式。`OFFLINE`、`IDLE`、`WORKING`、`ATTENTION` 和 `DONE` 使用不同状态文字及状态面板颜色。隐藏的语音和通知面板仍只是占位符。PTT 文案只是提示；U3 不连接 OK 按键输入、语音采集、BLE、Companion 数据或通知行为，也不实现 U4/U5/U6 功能。在 LVGL task 外调用 LVGL 仍须持有 `bsp_lvgl_lock()`。
+### Passport 与 BSP
 
-## BLE、语音与数据边界
+Passport 负责显示、产品交互、按键、麦克风/扬声器硬件访问、本地设置、有界 BLE 解析与传输事件，以及少量确定性投影逻辑。它展示 Companion 已归一化的快照，不聚合 Codex 会话，也不推算配额。
 
-使用项目自有的 128 位 BLE service。`CONTROL` 从 Mac Companion 流向 Passport；`EVENT` 和 `AUDIO` 从 Passport 流向 Mac Companion。控制消息采用有界、按行分隔的 JSON；音频采用有界二进制格式。确切 UUID 值、characteristic/schema 细节、数值型 payload/frame 上限及确切音频编码，仍需依据实测需求确定后再实现。
+BSP 继续负责板级引脚、显示器、按键、电池和音频接口。产品行为留在应用代码中。LVGL task 之外访问 LVGL 必须持有 bsp_lvgl_lock()。按键回调只投递有界工作，不能执行缓慢的存储、网络、音频或 UI 操作。销毁 UI 前先停止可能访问它的任务、回调和定时器。
 
-用户按住 OK 说话。Passport 负责采集麦克风音频，但不运行 STT。Mac Companion 在本地执行 STT，并将识别出的文本插入已验证的 Codex composer。不得自动按 Enter 或以其他方式自动提交 turn。Composer 的选择和文本插入方式必须以 Gate 0 的 Accessibility 探测结果为依据。
+### 无内容协议与安全
 
-不得向 Passport 发送 prompt、transcript、command、diff、tool output、assistant 内容、认证材料或 secret。解析前校验长度和格式，并为所有 payload、buffer、queue 和保留数据设定上限。只发送当前功能所需的字段。
+vNext 语义协议归本项目所有。允许字段只包括协议版本/能力、链路和新鲜度状态、枚举生命周期/结果值、有界聚合计数、源提供的配额值和重置标记，以及枚举的一次性通知代码。协议排除 PROJECT 和 ACTIVITY。线协议不得传输 prompt、transcript、command、diff、tool output、assistant 内容、tool 预览、审批请求、认证材料或 secret。
 
-公开角色引擎/代码和公开示例素材必须保持可分发。Spider-Man 及所有其他私有或不可分发的角色源素材不得进入公开 Git 历史或公开发行包。引入私有或本地角色源素材包前，必须先在 `.gitignore` 中保护其源路径；本文档不决定该路径。公开生成素材不得在未明确说明的情况下派生自私有或不可分发来源。
+持久快照真值与临时通知分离。重连后先传完整的当前快照，再依赖后续事件。事件序号/版本、ack、字段长度、行/帧上限、队列容量和音频分帧，需等协议门禁和硬件门禁收集实测依据后再冻结。
 
-`demo/claude-buddy-port` 仅作为代码移植与架构参考。除非针对本产品和当前硬件重新验证，否则其中的 BLE/协议实现及测量结果不属于本产品事实。
+R0 已选择 Option B 作为目标架构，但这还不是已验证的实现：改造 Espressif Apache-2.0 NimBLE 传输，同时保留更小的项目自有语义协议。Espressif 已发布的传输实现通过必需的 esp_desktop_buddy core 指针及 GATT RX 分发与其 Buddy 语义核心耦合。R3 首先必须验证能否把 RX/TX、GAP/GATT、配对/bond 生命周期、重连、队列和 teardown 拆到项目自有 transport 接口之后，且不引入 Buddy message、entries、prompt、tool、hint、时间命令或权限回复语义。若拆分失败或仍需保留 Buddy core，R3 必须停止并返回架构审查，不得悄然改用 Option A。
 
-## Gate 0 已审查的环境发现
+R0 不冻结具体配对策略，只冻结一条不变量：应用数据只能在项目自有 secure-link predicate 验证通过后流动。该 predicate 必须强制后续选定的加密、bond、MITM/认证、Secure Connections、peer identity 和订阅要求；donor 的 tx_ready 或 helper 判定本身均不充分。Espressif transport 可配置 bonding、MITM 和 Secure Connections，但其 tx_ready 只检查已连接、已订阅和已加密。这只是传输就绪状态，不是产品授权。Codex Buddy helper 忽略 authenticated，且默认关闭 MITM，只能作为反例证据。donor 的安全默认值、UUID、MTU 假设、帧大小、重试间隔和射频声明均不是当前产品事实。
 
-以下是为本阶段检查的本地环境观察，不构成新的产品不变量。
+Passport 绝不是仓库、agent、shell/tool、部署或其他特权审批的控制器。权限相关观察最多产生 ATTENTION 通知，并提示用户回到 Mac 操作。设备不能批准或拒绝该操作。
 
-- **Codex Desktop 身份：**bundle display name 为 `ChatGPT`，bundle ID 为 `com.openai.codex`，观测到的版本为 `26.924.22138`（build `11645`），可执行文件架构为 `arm64`。通过检查的 bundle metadata 无法确定 framework/runtime 版本。
-- **Rollout 生命周期与并发：**未观察到确切事件名 `SessionConfigured`、`TurnStarted` 和 `TurnComplete`。后续 metadata-only 检查在 32 个 rollout 文件中验证了 46 条持久化的 `event_msg` 记录，其 `payload.type = turn_aborted`。外层字段为 `type`、`ordinal`、`timestamp` 和 `payload`；payload 字段为 `type`、`turn_id`、`reason`、`started_at`、`completed_at` 和 `duration_ms`。每个检查过的文件都包含一条 `session_meta.payload.session_id`，且各文件内 ordinal 递增。G2.1 只会从此已验证的 abort 形式发出生命周期输入；`thread_settings_applied`、`task_started` 和 `task_complete` 不视为等价事件，并会 fail closed。现有 metadata 显示不同 session 之间存在重叠的 task 活动。
-- **配额：**现有 rollout `rate_limits` 记录包含按时长识别的短、长窗口（300 和 10080 分钟），以及数据源提供的用量和重置字段。由于未能确定可安全调用的 transport 或 request framing，App Server `account/rateLimits/read` 对比仍不可用；没有发送新请求。Rollout 数据不构成跨数据源验证，也没有使用基于 token 的估算。
-- **权限与信任：**对现有 rollout event/type label 的 metadata-only 扫描未发现匹配 permission、approval、trust、policy、sandbox、`allowed` 或 `denied` 的信号。该结论仅适用于已扫描的语料，不能证明应用没有其他权限行为。
-- **Composer Accessibility：**`NOT_INSPECTED`。可用的 CUA Accessibility hierarchy 调用没有 metadata-only 过滤功能，并可能返回文本值，因此没有查询 composer。没有触发 TCC 对话框或更改设置。Composer selector、可编辑性和文本插入行为仍未经验证。
-- **STT 基准测试：**在所探测的环境中不可用，因为检查的现有位置没有受支持的 `whisper.cpp` runtime 或预先存在的 `base`/`small` 模型对。没有进行推理、下载或安装，也没有使用用户音频；模型性能仍未知。
+## 4. 资源与失败规则
 
-## 第一阶段主机实现状态（G2.1–G2.5）
+缓冲区、队列、保留的标识符和解码后的消息均须有明确上限。超长、格式错误、不支持、过期、重放或乱序数据，在进入产品状态前必须拒绝。不得根据 donor 的测量值提高资源上限。ESP32-C3 没有 PSRAM；R3 和 R4 必须在当前板卡测量内部 heap、最大连续内存块、任务 stack、音频 DMA、显示 DMA 及最坏帧压力。
 
-当前 Gate 2 实现仅面向主机，并复用 Gate 1 核心：
+Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或中止的 turn 不得变成 DONE。断开连接会清除依赖链路的就绪状态；安全重连成功后必须先完成快照同步，之后才能把事件视为当前状态。到达数据源 reset 边界后配额不可用，不能用 token 总数估算。
 
-- **G2.1 — RolloutWatcher：**增量读取有界的持久化 rollout 记录，并且只发出已验证的 `turn_aborted` 生命周期形式。未知或未验证的生命周期标签 fail closed；不完整、格式错误和超长输入均会受到长度限制并被安全拒绝。
-- **G2.2 — 配额数据源与持久化：**`RolloutQuotaSource` 读取持久化的 `rate_limits`，并按时长匹配 300 分钟和 10080 分钟窗口，只使用数据源提供的用量与重置数据。窗口过期时会移除对应窗口，并且只清除该窗口的 reset detector 状态。Reset detector 持久化数据有界且通过原子替换写入；状态缺失或损坏时会安全地重新建立基线。`AppServerQuotaSource` 仍只是不可用的接口边界。
-- **G2.3 — CompanionCore：**通过现有 reducer 聚合由主机注入的各 session 生命周期事件，优先级为 `ATTENTION > WORKING > DONE > IDLE`。新生成的 Companion 快照在没有新鲜 Codex session 时为 `IDLE`。生命周期和已确认的配额重置通知均为一次性事件，并使用有界去重。快照发布只通过 fake transport 测试。
-- **G2.4 — 外部边界：**`PermissionObserver` 报告注入的数据源观察状态，不安装 hook，也不合成事件。STT 提供可注入的 backend 边界以及不可用/失败行为，不包含 runtime 或模型。Composer 文本插入必须通过单个已验证的不透明 target，接口只提供文本插入；没有实现真实 Accessibility selector、自动改选其他 target 或提交操作。
-- **G2.5 — 集成验证：**主机测试覆盖 rollout 到 Companion 的配额/状态/快照/fake-transport 流程、重启后的 reset 持久化、过期与重新出现，以及合成的 fake STT 结果流入已验证的 fake composer。测试还验证权限观察器或 STT 不可用时不会创建 attention 状态或可用 transcript。这些测试验证的是主机抽象和 fake，不是真实 macOS 集成。
+用户明确触发 unpair/reset 后，清理本地 bond 状态和有界链路状态。日志不得包含 prompt、transcript、command、payload 内容、credential 或原始授权数据。
 
-真实 App Server transport 和 request framing 仍不可用。尚未建立真实的 permission-request 或 hook 路径。STT runtime 和模型仍不可用。真实 Codex Accessibility composer 尚未验证，也没有生产用文本插入 adapter。主机接口和 fake 不能证明这些集成可用。尚未开始 Passport 产品固件、产品 UI 或物理 BLE 实现。
+## 5. R0–R7 交付门禁
 
-## 门禁顺序
+每个门禁都要单独经过 Control Room 审查。一个门禁的退出证据不授权进入下一个门禁。
 
-按顺序完成各门禁。记录证据和限制，不得持久化 secret。如果门禁需要用户处理 macOS 权限对话框、hook 信任、系统/全局安装或配置更改、GitHub origin 设置、公开发布或物理设备写入，应暂停并交由用户处理。未经 C2C Control Room 明确授权，不得 commit 或 push。
+### R0 — 复用架构重基线
 
-| 门禁 | 范围 | 退出证据 |
-| --- | --- | --- |
-| 架构 | 使用配对的英文和简体中文文档记录本架构与门禁计划。 | 两份文档对已冻结决策、未决细节和门禁顺序的描述一致；仓库文档验证通过。 |
-| 0 — 环境真值 | 探测 Codex Desktop 身份/runtime/bundle；rollout `SessionConfigured`、`TurnStarted`、`TurnComplete`、`TurnAborted`；并发 session 行为；App Server 配额与 rollout 后备数据；`PermissionRequest` 和信任行为；实际 Accessibility composer 特征；以及在可行时对比 whisper.cpp `base` 与 `small` 性能。 | 对每项探测记录观察结果、证据来源、方法和限制。若无法完成探测或基准测试，明确记录原因。不得持久化 secret。 |
-| 1 — 可主机测试的核心逻辑 | 实现有界协议模型和错误输入测试、多 session 状态 reducer、配额标准化/重置检测、新鲜度逻辑、通知去重，以及 fake/mock BLE transport。 | 主机测试覆盖合法和错误消息、并发 session 隔离、过期/新鲜快照、成功与失败/中止 turn、配额窗口/重置、通知去重和有界传输行为；通过独立 C2C 审查。 |
-| 2.1–2.5 — Mac Companion 真值层 | 实现上述主机专用 rollout watcher、配额数据源与有界 reset 持久化、CompanionCore、fail-closed 外部边界和集成测试。复用 Gate 1 reducer、protocol、deduplication 与 transport。 | 相关主机测试套件和静态验证通过；明确标记不可用的真实集成；通过独立 C2C 审查。 |
-| 后续阶段 — Passport 产品固件/UI | 仅当本阶段通过审查且另一个 goal 明确授权后，才实现设备端产品体验。 | 本阶段不开始 Passport 产品固件、UI、刷写或设备写入。 |
+- **进入条件：** 已核验当前 workspace/Git 基线，所有必需来源均已 pin。
+- **范围和 donor 输入：** 来源级许可/来源审计、模块矩阵、vNext 架构和 R0–R7 路线图。保留当前核心；仅改造明确许可的候选；排除不安全或许可不明的候选。
+- **不在范围内：** 生产代码、已安装 hooks、依赖、固件更改、设备写入、commit 和 push。
+- **退出证据：** 中英文文档对齐、来源证据已 pin、每个必要模块均有分类、文档/静态检查通过，且独立 Control Room 审查返回 DONE。
+- **需要人工操作时停止：** 仅在来源访问、许可或重大产品决策无法在 R0 内安全解决时停止。审查结束后停在这里。
 
-## 暂不确定的细节
+### R1 — 契约与协议收敛
 
-本计划不臆定 BLE UUID 值、characteristic schema、数值型 payload 上限、音频编码、确切的新鲜度阈值、macOS 权限处理方式、Accessibility 元素选择器或 STT 模型/调优参数。实现前应依据 Gate 0 证据和有界产品需求确定这些细节，同时保持上述所有权边界。
+- **进入条件：** R0 审查为 DONE，Control Room 授权 R1。
+- **范围和 donor 输入：** 冻结 Hook allowlist 事件模型、每会话顺序/结果、多会话聚合输入、配额/重置语义、快照和通知规则、设置/unpair 契约、协议版本及可测试接口。只采用已许可 Codex Buddy 源中的安全 Hook 映射模式。
+- **不在范围内：** 用户级 Hook 安装、生产 BLE、UI 改版、语音传输和最终角色设计。
+- **必需证据：** 主机测试覆盖合法/未知 Hook 事件、并发会话、重放/顺序拒绝、失败/中止结果、配额窗口/重置、内容拒绝、分帧边界和版本/能力行为。
+- **需要人工操作时停止：** 任何必须改写用户 Codex 配置、权限、信任或产品审批行为的操作。
+- **退出证据：** 已审查的契约、有依据的字段/字节/队列上限，以及经批准的 R2 测试计划。
+
+### R2 — Companion 生产真值
+
+- **进入条件：** R1 契约完成，且 Control Room 授权 R2。
+- **范围和 donor 输入：** 实现经 R1 论证的生产 Companion Hook/lifecycle/quota/reset/startup/diagnostics adapters。改造已许可桌面 bridge 与安装模式，同时保留当前数据真值及 fail-closed 行为。
+- **不在范围内：** Passport BLE/固件集成、turn 自动提交、设备审批和未支持的 App Server/Accessibility 行为。
+- **必需证据：** 在获授权环境验证真实 Hook→Companion 流程、多会话集成、配额/重置持久化、过期/offline 恢复、脱敏诊断及主机验证。
+- **需要人工操作时停止：** macOS 隐私/信任弹窗、用户级 Hook 配置同意、credential，或任何未支持的权限边界。
+- **退出证据：** 可独立检查的源码、可重复的 Companion 测试、已记录限制，以及通过审查的 R3 安全链路输入契约。
+
+### R3 — 安全桥接与会话层
+
+- **进入条件：** R2 审查为 DONE；R1 协议、内容与安全要求已冻结到足以评估传输层。
+- **首项可行性验证：** 把 Espressif NimBLE transport 拆到项目自有接口后，证明没有 esp_desktop_buddy 语义核心依赖或被禁止的内容/权限语义，并在产品集成前验证 ESP32-C3 / ESP-IDF 5.5.3 构建。
+- **范围和 donor 输入：** 仅改造成功拆分后的 GATT/GAP、配对/bond 生命周期、重连、有界 TX/RX 队列和 teardown；实现项目自有 secure-link predicate；在安全重连后完整同步快照。
+- **不在范围内：** Passport 产品导航、最终布局、角色引擎、PTT/STT 和自动审批。
+- **必需证据：** ESP-IDF 5.5.3 C3 构建、central/peripheral 双向互通，以及独立于 donor tx_ready 的加密/bond/MITM-认证/Secure-Connections/peer policy 强制验证；明确拒绝满足 donor transport 就绪条件、却不满足产品安全策略的链路。还须验证重试/unpair、有界队列、断连后的完整快照恢复、teardown 和实测资源数据。
+- **失败处置：** 若不能证明干净拆分、资源可接受、IDF 兼容或安全策略强制，R3 停止并返回架构审查。不得以采用 Espressif Buddy 语义核心作为回退。
+- **需要人工操作时停止：** 配对信任弹窗、物理设备操作、重大协议/安全决策，或不可接受的资源/射频结果。
+- **退出证据：** transport/core 解耦、安全策略强制、重连/同步、有界队列、teardown 和实测资源均通过独立审查。
+
+### R4 — Passport 产品集成
+
+- **进入条件：** R3 安全会话通过审查，协议稳定。
+- **范围和 donor 输入：** 将快照和一次性事件接到持久产品 UI；通过当前 BSP 实现有界按键/导航、设置、电池、必要时的时间显示、声音、持久化和显式 unpair。只改造经验证的小型 service 模式。
+- **不在范围内：** 在设备聚合 Codex、project/activity 字段、设备审批、最终吉祥物和语音采集。
+- **必需证据：** host mapping 测试，以及当前板卡上的显示、按键回调、LVGL locking、存储损坏/恢复、链路丢失和安全重连同步验收。
+- **需要人工操作时停止：** 物理硬件操作、导致范围扩大的产品导航决策，或对真实用户数据执行破坏性 reset。
+- **退出证据：** 持久 UI 与已审查的无内容契约一致，并通过真机验收。
+
+### R5 — 语音路径
+
+- **进入条件：** R4 产品集成通过审查，音频传输与隐私限制已批准。
+- **范围和 donor 输入：** 实现 push-to-talk 采集、有界音频分帧/传输、Mac 本地 STT、单一目标 composer 验证和插入，以及清晰的失败/恢复行为。使用当前 BSP 音频硬件；只有实测证明有用时才评估小型、许可明确的音频模式。
+- **不在范围内：** 常开录音、唤醒词服务、云端转写、在 Passport 显示/保留 transcript，以及自动提交 Codex。
+- **必需证据：** 采集和队列上限、codec 或 PCM 取舍、STT 可用性/延迟、中断和断连处理、目标验证，以及证明不存在提交操作的测试。
+- **需要人工操作时停止：** 麦克风/Accessibility 权限、音频数据同意或重大 codec/隐私选择。
+- **退出证据：** Mac 与设备之间可重复完成语音插入，且不会自动提交。
+
+### R6 — 加固与可支持性
+
+- **进入条件：** R4 和 R5 审查均为 DONE。
+- **范围和 donor 输入：** 加固 sleep/wake、RAM/task/audio 资源预算、启动/autostart、安装/卸载、诊断、simulator 覆盖、持久化迁移和恢复。改造许可明确的 setup/support 模式；simulator 只用于其确实建模的行为。
+- **不在范围内：** 新产品功能、新角色素材、无界 telemetry 和发布。
+- **必需证据：** 干净安装/升级、卸载/unpair、重启和故障注入、simulator 覆盖边界、脱敏支持材料及 C3 资源结果。
+- **需要人工操作时停止：** 全局/系统配置、签名 credential、破坏性迁移或生产分发。
+- **退出证据：** 支持/恢复流程成文，所有本地自动检查通过。
+
+### R7 — 端到端验收与发布准备
+
+- **进入条件：** R6 审查为 DONE，且验收硬件和获授权参与者均已到位。
+- **范围和 donor 输入：** 在真机验证 BLE 安全/重连、生命周期和多会话真值、配额/重置、UI/按键、语音、sleep/资源、安装/启动、诊断、许可及 simulator/硬件差异。
+- **不在范围内：** 未获明确授权的发布、GitHub push 或部署。
+- **必需证据：** 已签字的测试矩阵、无敏感内容的日志、源码/许可清单、可复现构建/打包记录、硬件结果和剩余限制。
+- **需要人工操作时停止：** 物理设备操作、账号或签名访问、发布操作，或任何未解决的安全/隐私决策。
+- **退出证据：** Control Room 审查确认已满足目标验收条件；发布操作仍需单独授权。
+
+## 6. 留待后续门禁解决的事实
+
+R0 不冻结以下项目：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、BLE UUID/GATT schema 和 central 兼容性、准确的 bonding/MITM/Secure Connections 策略、队列/帧/音频上限、当前板卡安全与 RF 验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。
+
+各门禁只收集自身范围所需的证据。Donor README、donor 构建成功或 simulator 运行结果，均不能证明当前 Passport 的行为。没有任何任意 prompt、tool 或 assistant 内容获准发送到设备。

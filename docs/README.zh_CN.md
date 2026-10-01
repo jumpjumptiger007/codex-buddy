@@ -103,13 +103,13 @@
 
 `main` 上的菜单和 `demo_*.c` 页面只是硬件能力测试界面，不是应用 UI。所有二次开发应用都必须重新设计并实现页面与交互流程，禁止使用当前测试菜单、页面或界面外壳；改名、换颜色不算满足要求。BSP API、普通 LVGL 控件、生命周期模式和独立逻辑仍可复用。详见[强制 UI 重新设计规则](development/ai-guide.zh_CN.md#二次开发-ui-强制重新设计)；维护基线硬件测试 demo 本身属于另一类任务。
 
-| 分支 | 展示的应用 | 值得复用的模式 |
+| 分支 | 展示的应用 | 已观察模式或审阅提示 |
 | --- | --- | --- |
 | `demo/stopwatch` | 秒表 | 最小计时应用、纯逻辑与 LVGL 分离、主机逻辑测试 |
 | `demo/cat-themed-pomodoro-timer` | 猫咪养成番茄钟 | 单调时钟、暂停/恢复、NVS 持久化、较完整的 PRD 与状态模型 |
 | `demo/rock-paper-scissors` | 石头剪刀布 | RGB565 图片资产、素材生成脚本、Flash 资源权衡 |
 | `demo/tetris-game` | 三键俄罗斯方块 | 实时游戏循环、低延迟 `PRESS` 输入、局部刷新、纯游戏模型、音效与麦克风交互 |
-| `demo/claude-buddy-port` | 桌面 AI 硬件伴侣 | 用完整应用替换 demo 菜单、加密 BLE、协议解析、状态归约、任务通信和较完整的主机测试 |
+| `demo/claude-buddy-port` | 桌面 AI 硬件伴侣 | 仅作为历史 donor 实现记录。采用前请查看 [R0 来源、许可与集成审计](development/codex-buddy-reuse-audit.zh_CN.md)；其安全与射频行为不代表当前板卡实测结果。 |
 
 <details>
 <summary><strong>查看示例并创建应用分支</strong></summary>
@@ -159,7 +159,7 @@ git switch -c feature/my-passport-app
 
 所有引脚、地址、面板参数和按键电压窗口只在 [`components/bsp/include/bsp_pins.h`](../components/bsp/include/bsp_pins.h) 定义。应用代码不得复制这些常量。完整引脚表、面板初始化、ADC 阈值、I2C 地址规则、音频时钟和内存说明见 [AI 硬件开发指南](hardware-design/AI_HARDWARE_DEVELOPMENT_GUIDE.zh_CN.md)。
 
-应用也可以使用 ESP-IDF 提供的定时器、FreeRTOS 任务和内部 Flash/NVS；番茄钟分支提供了 NVS 示例。Wi-Fi 和 Bluetooth LE 仍是 ESP-IDF 应用服务而非 BSP API：其菜单页面仅在打开时初始化对应协议栈、退出时释放。`demo/claude-buddy-port` 仍是更完整的 BLE 应用架构参考，不能替代对当前板卡天线、射频表现、功耗和共存行为的实测。
+应用也可以使用 ESP-IDF 提供的定时器、FreeRTOS 任务和内部 Flash/NVS；番茄钟分支提供了 NVS 示例。Wi-Fi 和 Bluetooth LE 仍是 ESP-IDF 应用服务而非 BSP API：其菜单页面仅在打开时初始化对应协议栈，退出时释放。将 `demo/claude-buddy-port` 仅作为源码对照；改造前先查看 [R0 审计](development/codex-buddy-reuse-audit.zh_CN.md)。其 BLE 安全、天线、射频、功耗和共存行为仍需以当前板卡证据验证。
 
 ### 不属于当前能力契约的事项
 
