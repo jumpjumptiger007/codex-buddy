@@ -69,7 +69,7 @@ VENDORED_DOC_ROOTS: tuple[str, ...] = (
 
 ## 放置位置
 
-- 仓库根目录仅保留工具发现入口（`AGENTS.md`、`CLAUDE.md` 及其翻译）、可选的 fork README 配对、许可证、构建清单和 ESP-IDF 配置。
+- 仓库根目录仅保留 AI / 工具发现入口（`AGENTS.md` 和 `AGENTS.zh_CN.md`）、可选的 fork README 配对、许可证、构建清单和 ESP-IDF 配置。
 - 项目说明与变更历史放入 `docs/`，按协作、开发、硬件和软件职责分类。
 - GitHub 自动识别的社区文档、模板、Issue Form 和 workflow 放入 `.github/`。
 - 可复用资源放入 `assets/`，项目 skill 放入 `skills/`，自动化脚本放入 `tools/`。

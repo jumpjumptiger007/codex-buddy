@@ -29,8 +29,6 @@ SECRET_PATTERNS = {
 ROOT_MARKDOWN_ALLOWLIST = {
     "AGENTS.md",
     "AGENTS.zh_CN.md",
-    "CLAUDE.md",
-    "CLAUDE.zh_CN.md",
     "README.md",
     "README.zh_CN.md",
 }
@@ -107,8 +105,6 @@ def check_required_files(errors: list[str]) -> None:
     required = (
         "AGENTS.md",
         "AGENTS.zh_CN.md",
-        "CLAUDE.md",
-        "CLAUDE.zh_CN.md",
         "docs/CHANGELOG.md",
         ".github/CONTRIBUTING.md",
         ".github/CODE_OF_CONDUCT.md",
