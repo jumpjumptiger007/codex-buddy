@@ -93,22 +93,15 @@ GPIO0 同时是按键 ADC 节点和 ESP32-C3 启动相关管脚；GPIO21 是背�
 
 ```text
 app_main
-  ├─ bsp_i2c_init → bsp_i2c_scan
-  ├─ bsp_display_init → bsp_lvgl_init → backlight 100%
-  ├─ input queue/lifecycle task → bsp_button_init(on_key)
-  ├─ bsp_audio_init
-  ├─ bsp_battery_init
-  └─ LVGL menu
-       ├─ Display demo
-       ├─ Button demo
-       ├─ Audio demo
-       ├─ Battery demo
-       ├─ Wi-Fi scan demo
-       ├─ Bluetooth LE advertising demo
-       └─ Low Power sleep-mode demo
+  ├─ bsp_display_init
+  ├─ bsp_lvgl_init → backlight
+  ├─ 确定性的 Passport 离线视图
+  └─ 一个持久化产品外壳（持有 LVGL 锁）
 ```
 
-显示是 UI 的硬依赖，显示或 LVGL 初始化失败时 `app_main` 直接返回。按键、音频、电池是软依赖：初始化失败的菜单项显示 `[FAIL]`，其他页面仍可用。
+当前 U2 产品启动只初始化显示/LVGL/背光和持久化离线外壳。它不会初始化 I2C、按键、音频、电池、Wi-Fi、NimBLE 或硬件测试菜单。下文所述 demo 页面及其生命周期行为仍作为基线/参考代码保留，但不再注册进产品组件。
+
+对于基线硬件测试 demo，显示/LVGL 是硬依赖；按键、音频、电池是软依赖，初始化失败的菜单项显示 `[FAIL]`，其他页面仍可用。
 
 公开 BSP API 位于 `components/bsp/include/`：
 

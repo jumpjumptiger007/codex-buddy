@@ -4,7 +4,7 @@
 
 # Codex Ambient Dashboard: Architecture and Delivery Gates
 
-This document records the architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. Phase 2 U0/U1 establishes the Passport application-model contract and host-testable mapping; it still ends before the LVGL product screen.
+This document records the architecture and delivery gates for the Codex Ambient Dashboard. Phase 1 covers architecture, real-environment validation, host-testable core logic, and the Mac Companion truth layer. Phase 2 U0/U1 establishes the Passport application-model contract and host-testable mapping; U2 adds the first persistent LVGL product shell without transport or interaction behavior.
 
 ## Product boundary and platform
 
@@ -44,6 +44,12 @@ These facts were checked against `bsp_display.h`, `bsp_display_lvgl.c`, `bsp_pin
 - The current LVGL registration uses one DMA buffer for 240 × 40 RGB565 pixels (19,200 bytes, about 19.2 kB) with `double_buffer=false`. The ESP32-C3 has no PSRAM; `sdkconfig.defaults` selects 16-bit LVGL color and a separate 24 KB LVGL pool. Review internal RAM, the largest contiguous block, and I2S DMA before adding buffers or large assets.
 - The BSP exposes UP, DOWN, and OK from one ADC ladder, with `PRESS`, `CLICK`, `DOUBLE`, and `LONG` events and 180 ms short/500 ms long timing. A separate hardware power button is not one of those BSP controls. Button callbacks run in the shared `esp_timer` task and must enqueue bounded work; they must not access LVGL. These facts do not assign product actions to the buttons.
 - The current implementation and host tests are authoritative if older guide text differs. U2 must re-check these files and tests before layout work; this inventory does not define exact text safe areas, fonts, or rendering behavior beyond the code above.
+
+## Phase 2 Passport product shell (U2)
+
+U2 creates one persistent product root with 24 pre-created LVGL objects, within the planned 20–30 object inventory. Startup initializes the display and LVGL, enables the backlight, maps the deterministic offline model view, and creates the product shell while holding the LVGL lock. The product component builds only the application model and shell; hardware-demo sources remain available as references but are not part of product startup.
+
+The shell presents lifecycle text, a static character face, project and activity fields, two quota-availability placeholders, and hidden reusable voice and notice panels. Updates change labels on the existing objects. They do not recreate screens or allocate UI objects. This gate does not add Companion/BLE binding, button actions, microphone capture, character animation, notices, or quota percentage/reset rendering. LVGL calls from outside LVGL context require `bsp_lvgl_lock()`.
 
 ## BLE, voice, and data boundaries
 
