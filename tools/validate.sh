@@ -95,6 +95,20 @@ run_static_checks() {
         companion/core/ambient_transport.c \
         -o "${test_dir}/test_companion_core"
     "${test_dir}/test_companion_core"
+    for r2_suite in identifier_registry codex_source_adapter companion_ingestion companion_diagnostics companion_runtime companion_r2_integration; do
+        "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core -Icompanion/mac -Itests \
+            "tests/test_${r2_suite}.c" companion/mac/identifier_registry.c \
+            companion/mac/codex_source_adapter.c companion/mac/codex_hook_contract.c \
+            companion/mac/companion_ingestion.c companion/mac/companion_diagnostics.c \
+            companion/mac/companion_runtime.c companion/mac/companion_core.c \
+            companion/mac/rollout_watcher.c companion/mac/rollout_quota_source.c \
+            companion/mac/quota_reset_state_store.c companion/core/ambient_reducer.c \
+            companion/core/ambient_dedup.c companion/core/ambient_quota.c \
+            companion/core/ambient_protocol.c companion/core/ambient_wire.c \
+            companion/core/ambient_transport.c tests/ambient_fake_transport.c \
+            -o "${test_dir}/test_${r2_suite}"
+        "${test_dir}/test_${r2_suite}"
+    done
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/mac \
         tests/test_permission_observer.c companion/mac/permission_observer.c \
         -o "${test_dir}/test_permission_observer"

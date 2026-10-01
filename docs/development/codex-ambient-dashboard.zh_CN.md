@@ -163,3 +163,7 @@ Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或�
 R1 后以下项目仍未解决：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、BLE UUID/GATT schema 和 central 兼容性、准确的 bonding/MITM/Secure Connections 策略、R1 硬上限内的 BLE MTU/fragmentation 和物理 queue/resource 验收、认证 generation 建立、R5 音频 framing/codec 上限、当前板卡安全与 RF 验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。
 
 各门禁只收集自身范围所需的证据。Donor README、donor 构建成功或 simulator 运行结果，均不能证明当前 Passport 的行为。没有任何任意 prompt、tool 或 assistant 内容获准发送到设备。
+
+## R2 自主证据
+
+[R2 生产真值](codex-r2-companion-truth.zh_CN.md) 记录有界来源/身份/runtime 基础设施、主机集成与 R3 输入契约。当前生产 Hook 顺序/结果映射和实时配额路径在证据不足时保持不可用；没有安装用户 Hook 或集成设备。R2 独立审查仍待完成。

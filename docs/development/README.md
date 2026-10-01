@@ -35,3 +35,5 @@ This directory contains AI Passport engineering rules and reusable workflows, gr
 - [publish-to-community.md](release/publish-to-community.md): publishing firmware to the AI Passport community market.
 - [project-completion.md](release/project-completion.md): project completion flow — a menu of optional closing actions.
 - [file-issues.md](release/file-issues.md): filing a suggestion as an upstream GitHub issue.
+
+- [R2 Companion Production Truth and R3 secure-link input](codex-r2-companion-truth.md)

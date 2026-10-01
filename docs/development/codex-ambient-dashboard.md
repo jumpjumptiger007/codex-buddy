@@ -162,3 +162,7 @@ Complete each gate through its own Control Room review. A gate's exit evidence d
 After R1, the following remain open: exact Hook payload/version semantics; production quota source transport; whether App Server quota can be read safely; BLE UUID/GATT schema and central compatibility; exact bonding/MITM/Secure Connections policy; BLE MTU/fragmentation and physical queue/resource acceptance within R1 hard maxima; authenticated generation establishment; audio framing/codec limits in R5; board-level security and RF acceptance; settings migration format; whether the product needs a visible wall clock; STT model/runtime performance; and the exact verified macOS composer-selection mechanism.
 
 Each gate must gather the evidence its scope needs. A donor README, successful donor build, or simulator run does not establish current Passport behavior. No arbitrary prompt, tool, or assistant content is approved for the device.
+
+## R2 autonomous evidence
+
+[R2 production truth](codex-r2-companion-truth.md) records bounded source/identity/runtime infrastructure, host integration and the R3 input contract. Current production Hook ordering/outcome mapping and live quota paths remain unavailable where evidence is insufficient; no user Hook installation or device integration has occurred. Independent R2 review remains pending.
