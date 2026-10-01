@@ -30,9 +30,9 @@ int main(void)
     size_t consumed;
 
     assert(ambient_protocol_validate_message(&message, 3)
-           == AMBIENT_PROTOCOL_VALID);
+           == AMBIENT_PROTOCOL_INVALID);
     assert(ambient_protocol_validate_message(&message, 2)
-           == AMBIENT_PROTOCOL_TOO_LARGE);
+           == AMBIENT_PROTOCOL_INVALID);
     message.control_payload = NULL;
     assert(ambient_protocol_validate_message(&message, 3)
            == AMBIENT_PROTOCOL_INVALID);

@@ -184,5 +184,25 @@ int main(void)
                                        &single_slot_view, NULL));
     assert(single_slot_view.status == AMBIENT_STATUS_WORKING);
     assert(single_slot_view.active_turn_key == 2000);
+    /* A later start replaces the active turn; an old terminal cannot finish it. */
+    value = event(AMBIENT_EVENT_TURN_STARTED, 200, 2001, 2);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 12) == AMBIENT_REDUCER_APPLIED);
+    value = event(AMBIENT_EVENT_TURN_SUCCEEDED, 200, 2000, 3);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 13) == AMBIENT_REDUCER_STALE_TURN);
+    assert(single_slot.active_turn_key == 2001 && single_slot.last_event_key == 2);
+    value = event(AMBIENT_EVENT_TURN_FAILED, 200, 2001, 3);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 13) == AMBIENT_REDUCER_APPLIED);
+    assert(single_slot.last_outcome == AMBIENT_OUTCOME_FAILED);
+    value = event(AMBIENT_EVENT_SESSION_IDLE, 300, 0, 1);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 23) == AMBIENT_REDUCER_NO_CAPACITY);
+    assert(single_slot.session_key == 200);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 24) == AMBIENT_REDUCER_APPLIED);
+    assert(single_slot.session_key == 300 && single_slot.last_event_key == 1);
+    value = event(AMBIENT_EVENT_SESSION_IDLE, 300, 0, UINT64_MAX);
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 24) == AMBIENT_REDUCER_APPLIED);
+    value.event_key = 1;
+    assert(ambient_reducer_apply(&single_slot_reducer, &value, 25) == AMBIENT_REDUCER_REPLAY);
+    assert(ambient_reducer_snapshot(&single_slot_reducer, 35, &snapshot));
+    assert(snapshot.status == AMBIENT_STATUS_OFFLINE);
     return 0;
 }

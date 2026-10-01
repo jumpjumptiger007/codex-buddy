@@ -117,7 +117,7 @@ int main(void)
     assert(!ambient_quota_reset_detector_init(&detector, NAN));
     assert(!ambient_quota_reset_detector_init(&detector, INFINITY));
     assert(ambient_quota_reset_detector_init(&detector, 100.0));
-    assert(ambient_quota_reset_detector_init(&detector, 15.0));
+    assert(ambient_quota_reset_detector_init(&detector, AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT));
     expect_short(&detector, 80.0, 10, 0);
 
     /* Unavailable/missing fields discard state; availability re-baselines. */
@@ -196,6 +196,31 @@ int main(void)
                   AMBIENT_QUOTA_RESET_CONFIRMED_SHORT
                       | AMBIENT_QUOTA_RESET_CONFIRMED_LONG);
     expect_update(&detector, &snapshot, 0);
+
+    /* Supported usage values are finite inclusive [0,100], atomic on rejection. */
+    const double invalid_usage[] = {NAN, INFINITY, -INFINITY, -0.01, 100.01};
+    for (size_t i = 0; i < sizeof(invalid_usage)/sizeof(invalid_usage[0]); i++) {
+        ambient_quota_window_t invalid = quota_window(300, invalid_usage[i], 301);
+        prior = snapshot_with(&short_window, NULL);
+        double saved = prior.short_window.used_percent;
+        assert(ambient_quota_normalize(&invalid, 1, 1, &prior) == AMBIENT_QUOTA_INVALID);
+        assert(prior.short_window.used_percent == saved);
+        snapshot = snapshot_with(&invalid, NULL);
+        expect_update(&detector, &snapshot, 0);
+        assert(!detector.short_window.has_baseline && !detector.short_window.has_candidate);
+        expect_short(&detector, 80.0, 300, 0);
+    }
+    assert(ambient_quota_reset_detector_init(&detector, AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT));
+    expect_short(&detector, 100.0, 1000, 0);
+    expect_short(&detector, 85.01, 1001, 0); /* 14.99pp below threshold */
+    assert(!detector.short_window.has_candidate);
+    expect_short(&detector, 100.0, 1002, 0);
+    expect_short(&detector, 85.0, 1003, 0); /* exact15pp candidate */
+    assert(detector.short_window.has_candidate);
+    expect_short(&detector, 85.0, 1003, AMBIENT_QUOTA_RESET_CONFIRMED_SHORT);
+    expect_short(&detector, 0.0, 1002, 0); /* regressed marker cannot confirm */
+    expect_short(&detector, 0.0, 1003, 0);
+    assert(!detector.short_window.has_candidate);
 
     mask = 0xff;
     assert(!ambient_quota_reset_detector_init(&detector, 101.0));

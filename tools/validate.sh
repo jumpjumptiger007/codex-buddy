@@ -41,6 +41,19 @@ run_static_checks() {
         tests/test_ambient_protocol.c companion/core/ambient_protocol.c \
         -o "${test_dir}/test_ambient_protocol"
     "${test_dir}/test_ambient_protocol"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core -Icompanion/mac \
+        tests/test_codex_hook_contract.c companion/mac/codex_hook_contract.c \
+        companion/core/ambient_reducer.c -o "${test_dir}/test_codex_hook_contract"
+    "${test_dir}/test_codex_hook_contract"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core -Itests \
+        tests/test_ambient_wire.c companion/core/ambient_wire.c \
+        companion/core/ambient_protocol.c companion/core/ambient_transport.c \
+        tests/ambient_fake_transport.c -o "${test_dir}/test_ambient_wire"
+    "${test_dir}/test_ambient_wire"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core \
+        tests/test_ambient_settings.c companion/core/ambient_settings.c \
+        -o "${test_dir}/test_ambient_settings"
+    "${test_dir}/test_ambient_settings"
     "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
         -Icompanion/core -Itests \
         tests/test_ambient_transport.c tests/ambient_fake_transport.c \
@@ -76,7 +89,7 @@ run_static_checks() {
         companion/mac/rollout_quota_source.c \
         companion/mac/quota_reset_state_store.c \
         companion/core/ambient_reducer.c \
-        companion/core/ambient_protocol.c \
+        companion/core/ambient_protocol.c companion/core/ambient_wire.c \
         companion/core/ambient_dedup.c \
         companion/core/ambient_quota.c \
         companion/core/ambient_transport.c \
@@ -105,7 +118,7 @@ run_static_checks() {
         companion/mac/rollout_quota_source.c \
         companion/mac/quota_reset_state_store.c \
         companion/core/ambient_reducer.c \
-        companion/core/ambient_protocol.c \
+        companion/core/ambient_protocol.c companion/core/ambient_wire.c \
         companion/core/ambient_dedup.c \
         companion/core/ambient_quota.c \
         companion/core/ambient_transport.c \

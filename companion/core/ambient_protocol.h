@@ -11,11 +11,8 @@ typedef enum {
     AMBIENT_MESSAGE_EVENT,
 } ambient_message_kind_t;
 
-/*
- * A semantic envelope for host-side validation. CONTROL payload bytes remain
- * opaque until the product protocol is specified; EVENT carries normalized,
- * content-free state. The view is borrowed only for the validation call.
- */
+/* Internal canonical event validation only. Legacy CONTROL is always rejected.
+ * Product wire messages use ambient_wire.h, which has no opaque/text fields. */
 typedef struct {
     ambient_message_kind_t kind;
     const uint8_t *control_payload;

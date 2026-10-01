@@ -9,6 +9,7 @@ This directory contains AI Passport engineering rules and reusable workflows, gr
 ## AI workflow
 
 - [codex-ambient-dashboard.md](codex-ambient-dashboard.md): authoritative Codex Ambient Dashboard vNext architecture and R0–R7 roadmap.
+- [codex-r1-contracts.md](codex-r1-contracts.md): frozen R1 host contracts, protocol bounds and executable R2 evidence plan.
 - [codex-buddy-reuse-audit.md](codex-buddy-reuse-audit.md): pinned donor sources, license/provenance evidence, and module-level R0 decisions.
 - [ai-guide.md](ai-guide.md): AI-assisted development workflow.
 - [Core AI skills](../../skills/README.md): development, setup, build, device testing, and diagnosis; installation and usage examples.

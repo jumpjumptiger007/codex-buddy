@@ -5,8 +5,8 @@
 #include <string.h>
 
 enum {
-    AMBIENT_SHORT_WINDOW_MINUTES = 300,
-    AMBIENT_LONG_WINDOW_MINUTES = 10080,
+    AMBIENT_SHORT_WINDOW_MINUTES = AMBIENT_QUOTA_SHORT_MINUTES,
+    AMBIENT_LONG_WINDOW_MINUTES = AMBIENT_QUOTA_LONG_MINUTES,
 };
 
 static bool ambient_quota_window_is_valid(const ambient_quota_window_t *window)

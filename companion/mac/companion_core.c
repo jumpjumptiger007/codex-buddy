@@ -162,7 +162,10 @@ bool companion_core_init(companion_core_t *core,
         || !options->notification_entries || !options->map_identifier
         || !options->on_notification || options->session_capacity == 0
         || options->notification_capacity == 0
-        || options->session_freshness_ms == 0) {
+        || options->session_freshness_ms == 0
+        || options->session_capacity > AMBIENT_WIRE_MAX_SESSIONS
+        || options->notification_capacity > COMPANION_NOTIFICATION_DEDUP_MAX
+        || options->minimum_quota_reset_drop_percent != AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT) {
         return false;
     }
     if (options->quota_reset_state_path) {
@@ -348,10 +351,6 @@ bool companion_core_snapshot(companion_core_t *core,
                                   &snapshot->lifecycle)) {
         return false;
     }
-    /* A fresh Companion snapshot reports Codex inactivity as IDLE. */
-    if (snapshot->lifecycle.status == AMBIENT_STATUS_OFFLINE) {
-        snapshot->lifecycle.status = AMBIENT_STATUS_IDLE;
-    }
     snapshot->generated_at_ms = now_ms;
 
     before = core->rollout_quota_source.reset_detector;
@@ -363,34 +362,72 @@ bool companion_core_snapshot(companion_core_t *core,
     return true;
 }
 
-ambient_transport_result_t companion_core_publish_snapshot(
-    companion_core_t *core,
-    const ambient_transport_t *transport,
-    uint64_t now_ms,
-    int64_t now_unix_seconds,
-    companion_snapshot_encode_fn encode,
-    void *encode_context,
-    uint8_t *buffer,
-    size_t buffer_capacity)
+bool companion_core_queue_notification(ambient_wire_session_t *session,
+                                       const companion_notification_t *notification)
 {
-    companion_snapshot_t snapshot;
-    size_t encoded_bytes = 0;
+    if (!notification) return false;
+    ambient_wire_notice_code_t code;
+    switch (notification->kind) {
+    case COMPANION_NOTIFICATION_ATTENTION: code = AMBIENT_NOTICE_ATTENTION; break;
+    case COMPANION_NOTIFICATION_COMPLETED: code = AMBIENT_NOTICE_COMPLETED; break;
+    case COMPANION_NOTIFICATION_ERROR: code = AMBIENT_NOTICE_ERROR; break;
+    case COMPANION_NOTIFICATION_QUOTA_5H_RESET: code = AMBIENT_NOTICE_SHORT_RESET; break;
+    case COMPANION_NOTIFICATION_QUOTA_WEEK_RESET: code = AMBIENT_NOTICE_LONG_RESET; break;
+    default: return false;
+    }
+    return ambient_wire_queue_notice(session, code);
+}
 
-    if (!core || !core->initialized || !transport || !encode || !buffer
-        || buffer_capacity == 0
-        || !companion_core_snapshot(core, now_ms, now_unix_seconds,
-                                    &snapshot)
-        || !encode(encode_context, &snapshot, buffer, buffer_capacity,
-                   &encoded_bytes)) {
-        return AMBIENT_TRANSPORT_INVALID;
+static bool companion_wire_quota(const ambient_quota_window_t *q,
+                                 uint16_t *used, uint64_t *marker)
+{
+    /* The source double remains authoritative in the quota/reset core.
+     * Wire presentation rounds to 0.01 percentage points; no remaining field. */
+    if (!q->used_percent_present || !q->reset_marker_present
+        || !(q->used_percent >= 0.0 && q->used_percent <= 100.0)) return false;
+    *used = (uint16_t)(q->used_percent * 100.0 + 0.5);
+    *marker = q->reset_marker; return true;
+}
+bool companion_core_wire_snapshot(const companion_snapshot_t *snapshot,
+                                  ambient_wire_snapshot_t *wire)
+{
+    if (!snapshot || !wire || snapshot->lifecycle.fresh_session_count > AMBIENT_WIRE_MAX_SESSIONS
+        || snapshot->lifecycle.working_session_count > AMBIENT_WIRE_MAX_SESSIONS
+        || snapshot->lifecycle.attention_session_count > AMBIENT_WIRE_MAX_SESSIONS
+        || snapshot->lifecycle.done_session_count > AMBIENT_WIRE_MAX_SESSIONS) return false;
+    ambient_wire_snapshot_t value = {.status = snapshot->lifecycle.status,
+        .fresh = snapshot->lifecycle.fresh_session_count,
+        .working = snapshot->lifecycle.working_session_count,
+        .attention = snapshot->lifecycle.attention_session_count,
+        .done = snapshot->lifecycle.done_session_count};
+    if (snapshot->quota_result == ROLLOUT_QUOTA_AVAILABLE) {
+        if (snapshot->quota.has_short_window) {
+            if (snapshot->quota.short_window.duration_minutes != AMBIENT_QUOTA_SHORT_MINUTES
+                || !companion_wire_quota(&snapshot->quota.short_window,
+                &value.short_used_basis_points, &value.short_reset_marker)) return false;
+            value.quota_present |= 1;
+        }
+        if (snapshot->quota.has_long_window) {
+            if (snapshot->quota.long_window.duration_minutes != AMBIENT_QUOTA_LONG_MINUTES
+                || !companion_wire_quota(&snapshot->quota.long_window,
+                &value.long_used_basis_points, &value.long_reset_marker)) return false;
+            value.quota_present |= 2;
+        }
     }
-    if (encoded_bytes == 0) {
-        return AMBIENT_TRANSPORT_INVALID;
-    }
-    if (encoded_bytes > buffer_capacity) {
-        return AMBIENT_TRANSPORT_TOO_LARGE;
-    }
-    return ambient_transport_send(transport, buffer, encoded_bytes);
+    ambient_wire_message_t m = {.kind = AMBIENT_WIRE_SNAPSHOT, .version = 1,
+        .generation = 1, .body.snapshot = {.revision = 1, .value = value}};
+    if (!ambient_wire_valid(&m)) return false;
+    *wire = value; return true;
+}
+ambient_transport_result_t companion_core_publish_snapshot(
+    companion_core_t *core, ambient_wire_session_t *session,
+    const ambient_transport_t *transport, uint64_t now_ms,
+    int64_t now_unix_seconds)
+{
+    companion_snapshot_t snapshot; ambient_wire_snapshot_t wire;
+    if (!companion_core_snapshot(core, now_ms, now_unix_seconds, &snapshot)
+        || !companion_core_wire_snapshot(&snapshot, &wire)) return AMBIENT_TRANSPORT_INVALID;
+    return ambient_wire_send_snapshot(session, &wire, transport);
 }
 
 bool companion_core_rollout_context_init(

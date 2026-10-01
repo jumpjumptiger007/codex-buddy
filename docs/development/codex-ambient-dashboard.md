@@ -63,7 +63,7 @@ The BSP remains the owner of board-specific pins, display, buttons, battery and 
 
 The vNext semantic protocol is project-owned. Its allowlisted fields are limited to protocol version/capabilities, link and freshness state, enumerated lifecycle/outcome values, bounded aggregate counts, source-provided quota values and reset markers, and enumerated one-shot notice codes. PROJECT and ACTIVITY are excluded. The wire carries no prompts, transcripts, commands, diffs, tool output, assistant content, tool previews, approval requests, authentication material, or secrets.
 
-Persistent snapshot truth is separate from transient notices. A reconnect receives a complete current snapshot before relying on later events. Sequence/revision, acknowledgement, field sizes, line/frame limits, queue capacities, and audio framing are not frozen until the contract and hardware gates establish measured values.
+Persistent snapshot truth is separate from transient notices. A reconnect receives a complete current snapshot before relying on later events. R1 freezes semantic sequence/revision/ACK rules, protocol version/capabilities, field sizes and host admission bounds in [the R1 contract](codex-r1-contracts.md): a maximum95-byte legal state frame, 128-byte line/129-byte frame admission, four notices/516-byte fake-transport queue budget, and eight sessions/sixteen dedup entries. R3 still owns BLE MTU/fragmentation, authenticated generation establishment and physical queue/resource proof; measured limits may tighten but must not silently exceed R1 hard maxima. R5 owns audio framing/codec limits.
 
 R0 selects Option B as the target architecture, not as a proven implementation: adapt Espressif's Apache-2.0 NimBLE transport while keeping the smaller project-owned semantic protocol. The published transport is source-coupled to esp_desktop_buddy through its required core pointer and GATT RX dispatch, so R3 begins with an extraction feasibility proof. RX/TX, GAP/GATT, pairing/bond lifecycle, reconnect, queues, and teardown must work behind the project-owned transport interface without importing Buddy message, entry, prompt, tool, hint, time-command, or permission-reply semantics. If that proof fails or requires retaining the Buddy semantic core, R3 stops for architecture review; it must not silently adopt Option A.
 
@@ -99,6 +99,8 @@ Complete each gate through its own Control Room review. A gate's exit evidence d
 - **Required evidence:** host tests for valid/unknown Hook events, concurrent sessions, replay/order rejection, failed/aborted outcomes, quota windows/resets, content rejection, framing bounds, and version/capability behavior.
 - **Stop for human action:** any required change to user Codex configuration, permission, trust, or product-visible approval behavior.
 - **Exit evidence:** reviewed contracts, host tests, field/byte/queue limits with rationale, and an approved R2 test plan.
+
+- **Frozen host contract:** [R1 contracts and R2 entry plan](codex-r1-contracts.md) defines the normalized boundary, wire v1, limits, recovery and source-evidence requirements.
 
 ### R2 — Companion Production Truth
 
@@ -157,6 +159,6 @@ Complete each gate through its own Control Room review. A gate's exit evidence d
 
 ## 6. Open facts carried to later gates
 
-The following are not frozen by R0: exact Hook payload/version semantics; production quota source transport; whether App Server quota can be read safely; BLE UUID/GATT schema and central compatibility; exact bonding/MITM/Secure Connections policy; queue/frame/audio limits; board-level security and RF acceptance; settings migration format; whether the product needs a visible wall clock; STT model/runtime performance; and the exact verified macOS composer-selection mechanism.
+After R1, the following remain open: exact Hook payload/version semantics; production quota source transport; whether App Server quota can be read safely; BLE UUID/GATT schema and central compatibility; exact bonding/MITM/Secure Connections policy; BLE MTU/fragmentation and physical queue/resource acceptance within R1 hard maxima; authenticated generation establishment; audio framing/codec limits in R5; board-level security and RF acceptance; settings migration format; whether the product needs a visible wall clock; STT model/runtime performance; and the exact verified macOS composer-selection mechanism.
 
 Each gate must gather the evidence its scope needs. A donor README, successful donor build, or simulator run does not establish current Passport behavior. No arbitrary prompt, tool, or assistant content is approved for the device.

@@ -8,6 +8,8 @@
 #include "ambient_protocol.h"
 #include "ambient_reducer.h"
 #include "ambient_transport.h"
+#include "ambient_wire.h"
+#define COMPANION_NOTIFICATION_DEDUP_MAX 16U
 #include "quota_reset_state_store.h"
 #include "rollout_quota_source.h"
 #include "rollout_watcher.h"
@@ -119,14 +121,6 @@ typedef struct {
     companion_quota_update_t last_quota_update;
 } companion_core_rollout_context_t;
 
-/* A caller owns and bounds the snapshot encoding format and output buffer. */
-typedef bool (*companion_snapshot_encode_fn)(
-    void *context,
-    const companion_snapshot_t *snapshot,
-    uint8_t *buffer,
-    size_t buffer_capacity,
-    size_t *encoded_bytes);
-
 bool companion_core_init(companion_core_t *core,
                          const companion_core_options_t *options);
 
@@ -153,15 +147,17 @@ bool companion_core_snapshot(companion_core_t *core,
                              int64_t now_unix_seconds,
                              companion_snapshot_t *snapshot);
 
+/* Product projection contains only approved numeric semantic fields. */
+/* Notification carries no raw source content; queue overflow drops this notice
+ * and never changes persistent core truth. */
+bool companion_core_queue_notification(ambient_wire_session_t *session,
+                                       const companion_notification_t *notification);
+bool companion_core_wire_snapshot(const companion_snapshot_t *snapshot,
+                                  ambient_wire_snapshot_t *wire);
 ambient_transport_result_t companion_core_publish_snapshot(
-    companion_core_t *core,
-    const ambient_transport_t *transport,
-    uint64_t now_ms,
-    int64_t now_unix_seconds,
-    companion_snapshot_encode_fn encode,
-    void *encode_context,
-    uint8_t *buffer,
-    size_t buffer_capacity);
+    companion_core_t *core, ambient_wire_session_t *session,
+    const ambient_transport_t *transport, uint64_t now_ms,
+    int64_t now_unix_seconds);
 
 bool companion_core_rollout_context_init(
     companion_core_rollout_context_t *context,

@@ -29,16 +29,9 @@ ambient_protocol_result_t ambient_protocol_validate_message(
 
     switch (message->kind) {
     case AMBIENT_MESSAGE_CONTROL:
-        if (message->event) {
-            return AMBIENT_PROTOCOL_INVALID;
-        }
-        if (message->control_payload_length > max_control_payload_bytes) {
-            return AMBIENT_PROTOCOL_TOO_LARGE;
-        }
-        if (message->control_payload_length > 0 && !message->control_payload) {
-            return AMBIENT_PROTOCOL_INVALID;
-        }
-        return AMBIENT_PROTOCOL_VALID;
+        /* Reserved legacy kind: arbitrary control bytes are never semantic data. */
+        (void)max_control_payload_bytes;
+        return AMBIENT_PROTOCOL_INVALID;
     case AMBIENT_MESSAGE_EVENT:
         if (message->control_payload || message->control_payload_length != 0
             || !ambient_event_is_valid(message->event)) {
@@ -82,7 +75,8 @@ ambient_frame_result_t ambient_line_framer_feed(
         || (byte_count > 0 && !bytes) || max_line_bytes == 0
         || max_line_bytes != framer->max_line_bytes
         || max_line_bytes == SIZE_MAX
-        || framer->capacity < framer->max_line_bytes + 1) {
+        || framer->capacity < framer->max_line_bytes + 1
+        || framer->length > framer->max_line_bytes) {
         return AMBIENT_FRAME_INVALID;
     }
 

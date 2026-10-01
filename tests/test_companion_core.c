@@ -78,7 +78,7 @@ static companion_core_options_t make_options(
         .notification_capacity = dedup_capacity,
         .session_freshness_ms = 1000,
         .done_hold_ms = 50,
-        .minimum_quota_reset_drop_percent = 15.0,
+        .minimum_quota_reset_drop_percent = AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT,
         .quota_reset_state_path = state_path,
         .map_identifier = map_identifier,
         .on_notification = capture_notification,
@@ -160,7 +160,7 @@ static void test_aggregation_freshness_and_notification_dedup(void)
            == AMBIENT_REDUCER_APPLIED);
     assert(!notified && notifications.count == 2);
     assert(companion_core_snapshot(&core, 2106, 100, &snapshot));
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.fresh_session_count == 0);
 }
 
@@ -216,24 +216,6 @@ static rollout_rate_limits_input_t changed_quota(void)
     return limits;
 }
 
-static bool encode_test_snapshot(void *context,
-                                 const companion_snapshot_t *snapshot,
-                                 uint8_t *buffer,
-                                 size_t buffer_capacity,
-                                 size_t *encoded_bytes)
-{
-    (void)context;
-    if (!snapshot || !buffer || !encoded_bytes || buffer_capacity < 3) {
-        return false;
-    }
-    /* Test-only bytes; this is not a product wire schema. */
-    buffer[0] = (uint8_t)snapshot->lifecycle.status;
-    buffer[1] = snapshot->quota.has_short_window ? 1 : 0;
-    buffer[2] = snapshot->quota.has_long_window ? 1 : 0;
-    *encoded_bytes = 3;
-    return true;
-}
-
 static void test_rollout_quota_persistence_snapshot_and_fake_transport(void)
 {
     static const char rollout_lines[] =
@@ -257,10 +239,14 @@ static void test_rollout_quota_persistence_snapshot_and_fake_transport(void)
     ambient_quota_reset_window_state_t weekly_state;
     ambient_fake_transport_t fake;
     ambient_transport_t transport;
-    uint8_t transport_storage[2 * 8];
+    uint8_t transport_storage[2 * AMBIENT_WIRE_MAX_FRAME_BYTES];
     size_t message_lengths[2];
-    uint8_t receive_buffer[8];
-    uint8_t encode_buffer[8];
+    uint8_t receive_buffer[AMBIENT_WIRE_MAX_FRAME_BYTES];
+    ambient_wire_session_t session;
+    assert(ambient_wire_session_init(&session, 1, 7, 7));
+    ambient_wire_message_t hello = {.kind = AMBIENT_WIRE_HELLO, .version = 1,
+        .generation = 1, .body.hello = {.offered = 7, .required = 7}};
+    assert(ambient_wire_negotiate(&session, &hello));
     size_t received_bytes = 0;
 
     make_missing_temp_path(rollout_path, sizeof(rollout_path),
@@ -378,7 +364,7 @@ static void test_rollout_quota_persistence_snapshot_and_fake_transport(void)
                },
                60, NULL) == AMBIENT_REDUCER_APPLIED);
     assert(companion_core_snapshot(&restarted_core, 1200, 2100, &snapshot));
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.fresh_session_count == 0);
     assert(snapshot.quota_result == ROLLOUT_QUOTA_AVAILABLE);
     assert(!snapshot.quota.has_short_window && snapshot.quota.has_long_window);
@@ -391,23 +377,20 @@ static void test_rollout_quota_persistence_snapshot_and_fake_transport(void)
 
     assert(ambient_fake_transport_init(&fake, transport_storage,
                                        sizeof(transport_storage),
-                                       message_lengths, 2, 8, 8,
+                                       message_lengths, 2, AMBIENT_WIRE_MAX_FRAME_BYTES, AMBIENT_WIRE_MAX_FRAME_BYTES,
                                        &transport));
     assert(companion_core_publish_snapshot(
-               &restarted_core, &transport, 1201, 2100,
-               encode_test_snapshot, NULL, encode_buffer,
-               sizeof(encode_buffer)) == AMBIENT_TRANSPORT_DISCONNECTED);
+               &restarted_core, &session, &transport, 1201, 2100) == AMBIENT_TRANSPORT_DISCONNECTED);
     ambient_fake_transport_set_connected(&fake, true);
     assert(companion_core_publish_snapshot(
-               &restarted_core, &transport, 1202, 2100,
-               encode_test_snapshot, NULL, encode_buffer,
-               sizeof(encode_buffer)) == AMBIENT_TRANSPORT_OK);
+               &restarted_core, &session, &transport, 1202, 2100) == AMBIENT_TRANSPORT_OK);
     assert(ambient_transport_receive(&transport, receive_buffer,
                                      sizeof(receive_buffer), &received_bytes)
            == AMBIENT_TRANSPORT_OK);
-    assert(received_bytes == 3);
-    assert(receive_buffer[0] == AMBIENT_STATUS_IDLE);
-    assert(receive_buffer[1] == 0 && receive_buffer[2] == 1);
+    ambient_wire_message_t decoded;
+    assert(ambient_wire_decode(receive_buffer, received_bytes - 1, &decoded));
+    assert(decoded.body.snapshot.value.status == AMBIENT_STATUS_OFFLINE);
+    assert(decoded.body.snapshot.value.quota_present == 2);
 
     weekly_state = restarted_core.rollout_quota_source.reset_detector.long_window;
     assert(companion_core_snapshot(&restarted_core, 1203, 2100, &snapshot));
@@ -511,7 +494,7 @@ static void test_lifecycle_notification_kinds(void)
     assert(!notified && notifications.count == 3);
 }
 
-static void test_fresh_companion_without_sessions_is_idle(void)
+static void test_companion_without_source_sessions_is_offline(void)
 {
     companion_core_t core;
     ambient_session_slot_t slots[1];
@@ -524,7 +507,7 @@ static void test_fresh_companion_without_sessions_is_idle(void)
     assert(companion_core_init(&core, &options));
     assert(companion_core_snapshot(&core, 10, 30, &snapshot));
     assert(snapshot.generated_at_ms == 10);
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.fresh_session_count == 0);
 }
 
@@ -682,11 +665,56 @@ static void test_unavailable_to_available_rebaseline_is_silent(void)
     assert(notifications.count == 0);
 }
 
+static void test_r1_product_bounds_and_projection_failure(void)
+{
+    companion_core_t core;
+    ambient_session_slot_t slots[AMBIENT_WIRE_MAX_SESSIONS + 1];
+    ambient_notification_key_t entries[COMPANION_NOTIFICATION_DEDUP_MAX + 1];
+    notification_capture_t capture = {0};
+    companion_core_options_t options = make_options(slots, AMBIENT_WIRE_MAX_SESSIONS + 1,
+        entries, COMPANION_NOTIFICATION_DEDUP_MAX, &capture, NULL);
+    assert(!companion_core_init(&core, &options));
+    options.session_capacity = AMBIENT_WIRE_MAX_SESSIONS;
+    options.notification_capacity = COMPANION_NOTIFICATION_DEDUP_MAX + 1;
+    assert(!companion_core_init(&core, &options));
+    options.notification_capacity = COMPANION_NOTIFICATION_DEDUP_MAX;
+    options.minimum_quota_reset_drop_percent = 14.0;
+    assert(!companion_core_init(&core, &options));
+    options.minimum_quota_reset_drop_percent = AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT;
+    assert(companion_core_init(&core, &options));
+    companion_snapshot_t snapshot;
+    ambient_wire_snapshot_t wire = {.fresh = 7}, before = wire;
+    assert(companion_core_snapshot(&core, 0, 0, &snapshot));
+    snapshot.lifecycle.fresh_session_count = AMBIENT_WIRE_MAX_SESSIONS + 1;
+    assert(!companion_core_wire_snapshot(&snapshot, &wire));
+    assert(!memcmp(&wire, &before, sizeof(wire)));
+    snapshot.lifecycle.fresh_session_count = 0;
+    snapshot.quota_result = ROLLOUT_QUOTA_AVAILABLE;
+    snapshot.quota.has_short_window = true;
+    snapshot.quota.short_window = (ambient_quota_window_t){.duration_minutes = 300,
+        .used_percent_present = true, .used_percent = 100.01,
+        .reset_marker_present = true, .reset_marker = 200};
+    assert(!companion_core_wire_snapshot(&snapshot, &wire));
+    assert(!memcmp(&wire, &before, sizeof(wire)));
+    snapshot.quota.short_window.used_percent = 12.345;
+    assert(companion_core_wire_snapshot(&snapshot, &wire));
+    assert(wire.short_used_basis_points == 1235 && wire.short_reset_marker == 200);
+    assert(snapshot.quota.short_window.used_percent == 12.345);
+    ambient_wire_session_t session;
+    assert(ambient_wire_session_init(&session, 1, 7, 7));
+    companion_notification_t notice = {.kind = COMPANION_NOTIFICATION_ERROR};
+    assert(!companion_core_queue_notification(&session, &notice));
+    assert(!companion_core_queue_notification(&session, NULL));
+    assert(companion_core_snapshot(&core, 1, 0, &snapshot));
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
+}
+
 int main(void)
 {
+    test_r1_product_bounds_and_projection_failure();
     test_aggregation_freshness_and_notification_dedup();
     test_rollout_quota_persistence_snapshot_and_fake_transport();
-    test_fresh_companion_without_sessions_is_idle();
+    test_companion_without_source_sessions_is_offline();
     test_lifecycle_notification_kinds();
     test_aborted_turn_is_silent_and_returns_to_idle();
     test_quota_reset_notification_kinds_and_dedup();

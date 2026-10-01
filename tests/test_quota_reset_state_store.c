@@ -165,8 +165,26 @@ static void test_checksum_corruption_rebaselines(void)
     assert(rmdir(directory) == 0);
 }
 
+static void test_write_failure_and_recovery(void)
+{
+    char directory[] = "/tmp/quota-reset-failure.XXXXXX", bad_path[256], good_path[256];
+    make_test_directory(directory);
+    assert(snprintf(bad_path, sizeof(bad_path), "%s/missing/state.bin", directory) > 0);
+    assert(snprintf(good_path, sizeof(good_path), "%s/state.bin", directory) > 0);
+    ambient_quota_reset_detector_t detector, loaded;
+    assert(ambient_quota_reset_detector_init(&detector, AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT));
+    assert(quota_reset_state_store_save_atomic(bad_path, &detector) == QUOTA_RESET_STATE_STORE_IO_ERROR);
+    assert(quota_reset_state_store_save_atomic(directory, &detector) == QUOTA_RESET_STATE_STORE_IO_ERROR);
+    assert(quota_reset_state_store_save_atomic(good_path, &detector) == QUOTA_RESET_STATE_STORE_OK);
+    assert(ambient_quota_reset_detector_init(&loaded, AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT));
+    assert(quota_reset_state_store_load(good_path, &loaded) == QUOTA_RESET_STATE_STORE_OK);
+    assert(!loaded.short_window.has_baseline && !loaded.long_window.has_baseline);
+    assert(unlink(good_path) == 0); assert(rmdir(directory) == 0);
+}
+
 int main(void)
 {
+    test_write_failure_and_recovery();
     test_missing_and_corrupt_state_rebaseline();
     test_reset_candidate_and_confirmation_survive_restart();
     test_checksum_corruption_rebaselines();

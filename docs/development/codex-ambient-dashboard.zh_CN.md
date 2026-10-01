@@ -63,7 +63,7 @@ BSP 继续负责板级引脚、显示器、按键、电池和音频接口。产�
 
 vNext 语义协议归本项目所有。允许字段只包括协议版本/能力、链路和新鲜度状态、枚举生命周期/结果值、有界聚合计数、源提供的配额值和重置标记，以及枚举的一次性通知代码。协议排除 PROJECT 和 ACTIVITY。线协议不得传输 prompt、transcript、command、diff、tool output、assistant 内容、tool 预览、审批请求、认证材料或 secret。
 
-持久快照真值与临时通知分离。重连后先传完整的当前快照，再依赖后续事件。事件序号/版本、ack、字段长度、行/帧上限、队列容量和音频分帧，需等协议门禁和硬件门禁收集实测依据后再冻结。
+持久快照真值与临时通知分离。重连后先传完整的当前快照，再依赖后续事件。R1 在 [R1 契约](codex-r1-contracts.zh_CN.md)中冻结语义 sequence/revision/ACK、协议 version/capability、字段长度及主机 admission 上限：合法 state frame 最大95字节、line128字节/frame129字节、四条 notice/516字节 fake-transport queue、八 session/十六 dedup entry。R3 仍负责 BLE MTU/fragmentation、认证 generation 建立及物理 queue/resource 证明；实测可收紧，但不能静默超过 R1 硬上限。R5 负责音频 framing/codec 上限。
 
 R0 已选择 Option B 作为目标架构，但这还不是已验证的实现：改造 Espressif Apache-2.0 NimBLE 传输，同时保留更小的项目自有语义协议。Espressif 已发布的传输实现通过必需的 esp_desktop_buddy core 指针及 GATT RX 分发与其 Buddy 语义核心耦合。R3 首先必须验证能否把 RX/TX、GAP/GATT、配对/bond 生命周期、重连、队列和 teardown 拆到项目自有 transport 接口之后，且不引入 Buddy message、entries、prompt、tool、hint、时间命令或权限回复语义。若拆分失败或仍需保留 Buddy core，R3 必须停止并返回架构审查，不得悄然改用 Option A。
 
@@ -99,6 +99,8 @@ Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或�
 - **必需证据：** 主机测试覆盖合法/未知 Hook 事件、并发会话、重放/顺序拒绝、失败/中止结果、配额窗口/重置、内容拒绝、分帧边界和版本/能力行为。
 - **需要人工操作时停止：** 任何必须改写用户 Codex 配置、权限、信任或产品审批行为的操作。
 - **退出证据：** 已审查的契约、有依据的字段/字节/队列上限，以及经批准的 R2 测试计划。
+
+- **冻结主机契约：** [R1 契约与 R2 进入计划](codex-r1-contracts.zh_CN.md)定义归一化边界、wire v1、上限、恢复及来源证据要求。
 
 ### R2 — Companion 生产真值
 
@@ -158,6 +160,6 @@ Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或�
 
 ## 6. 留待后续门禁解决的事实
 
-R0 不冻结以下项目：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、BLE UUID/GATT schema 和 central 兼容性、准确的 bonding/MITM/Secure Connections 策略、队列/帧/音频上限、当前板卡安全与 RF 验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。
+R1 后以下项目仍未解决：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、BLE UUID/GATT schema 和 central 兼容性、准确的 bonding/MITM/Secure Connections 策略、R1 硬上限内的 BLE MTU/fragmentation 和物理 queue/resource 验收、认证 generation 建立、R5 音频 framing/codec 上限、当前板卡安全与 RF 验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。
 
 各门禁只收集自身范围所需的证据。Donor README、donor 构建成功或 simulator 运行结果，均不能证明当前 Passport 的行为。没有任何任意 prompt、tool 或 assistant 内容获准发送到设备。

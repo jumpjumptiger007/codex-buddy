@@ -137,7 +137,7 @@ static void test_unavailable_permission_does_not_create_attention(void)
         .notification_capacity = 4,
         .session_freshness_ms = 1000,
         .done_hold_ms = 50,
-        .minimum_quota_reset_drop_percent = 15.0,
+        .minimum_quota_reset_drop_percent = AMBIENT_QUOTA_PRODUCT_RESET_DROP_PERCENT,
         .map_identifier = map_identifier,
         .on_notification = capture_notification,
         .notification_context = &notifications,
@@ -153,13 +153,13 @@ static void test_unavailable_permission_does_not_create_attention(void)
 
     assert(companion_core_init(&core, &options));
     assert(companion_core_snapshot(&core, 10, 100, &snapshot));
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.fresh_session_count == 0);
 
     assert(permission_observer_poll(&observer)
            == PERMISSION_OBSERVER_UNAVAILABLE);
     assert(companion_core_snapshot(&core, 11, 101, &snapshot));
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.attention_session_count == 0);
     assert(notifications.count == 0);
 
@@ -167,7 +167,7 @@ static void test_unavailable_permission_does_not_create_attention(void)
     assert(permission_observer_poll(&observer)
            == PERMISSION_OBSERVER_UNSUPPORTED);
     assert(companion_core_snapshot(&core, 12, 102, &snapshot));
-    assert(snapshot.lifecycle.status == AMBIENT_STATUS_IDLE);
+    assert(snapshot.lifecycle.status == AMBIENT_STATUS_OFFLINE);
     assert(snapshot.lifecycle.attention_session_count == 0);
     assert(notifications.count == 0);
     assert(fake.calls == 2);
