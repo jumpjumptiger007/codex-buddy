@@ -113,14 +113,18 @@ Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或�
 
 ### R3 — 安全桥接与会话层
 
+R3 iteration 1/2 已通过独立复审。Iteration 3 实现已批准的方向化信任：Passport 执行 NimBLE 安全策略，Companion 通过 fresh pre-R1 应用认证验证显式 pin 的 P-256 Passport 身份，不声称 CoreBluetooth BLE 安全事实。Iteration 3 安全架构与加密已通过复审，iteration 4 有界 CoreBluetooth scheduling/RX-loss 已通过复审；iteration 5 准备独立验收端点，等待复审；R3 尚未 DONE。Central/peripheral 真机验收与运行资源测量仍为 UNVERIFIED。R3 审查 DONE 前，不授权 R4。
+
 - **进入条件：** R2 审查为 DONE；R1 协议、内容与安全要求已冻结到足以评估传输层。
 - **首项可行性验证：** 把 Espressif NimBLE transport 拆到项目自有接口后，证明没有 esp_desktop_buddy 语义核心依赖或被禁止的内容/权限语义，并在产品集成前验证 ESP32-C3 / ESP-IDF 5.5.3 构建。
-- **范围和 donor 输入：** 仅改造成功拆分后的 GATT/GAP、配对/bond 生命周期、重连、有界 TX/RX 队列和 teardown；实现项目自有 secure-link predicate；在安全重连后完整同步快照。
+- **范围和 donor 输入：** 仅适配固定 S5 中 GAP/GATT/字节 notification 机制；使用项目 UUIDv5 service/RX/TX 标识、MTU 23、有界字节队列、项目自有 bonding/peer 接受、Companion 自有持久 epoch 加 host CSPRNG generation 与 Companion-first HELLO、teardown 与完整快照重同步。`tx_ready` 永不代表产品授权。
 - **不在范围内：** Passport 产品导航、最终布局、角色引擎、PTT/STT 和自动审批。
 - **必需证据：** ESP-IDF 5.5.3 C3 构建、central/peripheral 双向互通，以及独立于 donor tx_ready 的加密/bond/MITM-认证/Secure-Connections/peer policy 强制验证；明确拒绝满足 donor transport 就绪条件、却不满足产品安全策略的链路。还须验证重试/unpair、有界队列、断连后的完整快照恢复、teardown 和实测资源数据。
 - **失败处置：** 若不能证明干净拆分、资源可接受、IDF 兼容或安全策略强制，R3 停止并返回架构审查。不得以采用 Espressif Buddy 语义核心作为回退。
 - **需要人工操作时停止：** 配对信任弹窗、物理设备操作、重大协议/安全决策，或不可接受的资源/射频结果。
 - **退出证据：** transport/core 解耦、安全策略强制、重连/同步、有界队列、teardown 和实测资源均通过独立审查。
+
+[R3 安全桥接证据](codex-r3-secure-bridge.zh_CN.md) 记录准确的提取、GATT 策略、实现边界、构建/主机结果和剩余的真机证据。
 
 ### R4 — Passport 产品集成
 
@@ -160,10 +164,14 @@ Companion 数据源不可用或过期时，Passport 显示 OFFLINE。失败或�
 
 ## 6. 留待后续门禁解决的事实
 
-R1 后以下项目仍未解决：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、BLE UUID/GATT schema 和 central 兼容性、准确的 bonding/MITM/Secure Connections 策略、R1 硬上限内的 BLE MTU/fragmentation 和物理 queue/resource 验收、认证 generation 建立、R5 音频 framing/codec 上限、当前板卡安全与 RF 验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。
+R3 审查待进行时以下项目仍未解决：Hook payload/版本的正式语义、生产配额源传输、能否安全读取 App Server 配额、真机 central 兼容性与配对安全、R1 硬上限内 BLE queue/resource 的真机验收和 RF 验收、R5 音频 framing/codec 上限、当前板卡安全验收、设置迁移格式、产品是否需要设备时钟、STT 模型/runtime 性能，以及 macOS composer 目标的实际验证方式。R3 待审实现使用 UUID/GATT 布局、MTU 23、SC+MITM bonding 策略、accepted-peer 持久化与 Companion 自有 epoch-backed generation 与 Passport HELLO 绑定；详见 R3 证据文档。
 
 各门禁只收集自身范围所需的证据。Donor README、donor 构建成功或 simulator 运行结果，均不能证明当前 Passport 的行为。没有任何任意 prompt、tool 或 assistant 内容获准发送到设备。
 
 ## R2 自主证据
 
-[R2 生产真值](codex-r2-companion-truth.zh_CN.md) 记录有界来源/身份/runtime 基础设施、主机集成与 R3 输入契约。当前生产 Hook 顺序/结果映射和实时配额路径在证据不足时保持不可用；没有安装用户 Hook 或集成设备。R2 独立审查仍待完成。
+[R2 生产真值](codex-r2-companion-truth.zh_CN.md) 记录有界来源/身份/runtime 基础设施、主机集成与 R3 输入契约。当前生产 Hook 顺序/结果映射和实时配额路径在证据不足时保持不可用；没有安装用户 Hook 或集成设备。该报告写作时 R2 独立审查尚未完成；当前已审查 checkpoint 已将 R2 标记为 DONE 并授权 R3。
+
+## R3 自主证据
+
+[R3 安全桥接](codex-r3-secure-bridge.zh_CN.md) 记录固定 NimBLE 传输提取、项目自有字节边界、安全与 generation 策略、ESP32-C3 / ESP-IDF 5.5.3 固件构建、主机故障测试及仍为 UNVERIFIED 的真机证据。实现未开始 R4 UI 或语音集成，等待 Control Room 独立审查。

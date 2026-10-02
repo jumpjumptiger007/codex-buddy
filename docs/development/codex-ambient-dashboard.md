@@ -113,13 +113,17 @@ Complete each gate through its own Control Room review. A gate's exit evidence d
 
 ### R3 — Secure Bridge and Session Layer
 
+R3 iterations 1/2 passed independent review. Iteration 3 implements the approved directional trust model: Passport enforces NimBLE security, while Companion verifies a pinned P-256 Passport identity through fresh pre-R1 application authentication. CoreBluetooth BLE security facts are not claimed. Iteration 3 security architecture and crypto passed independent review; iteration 4 bounded CoreBluetooth scheduling/RX-loss correction passed review. Iteration 5 prepares isolated acceptance endpoints and awaits review. Physical central/peripheral acceptance and runtime resource measurements remain UNVERIFIED. R4 remains unauthorized until R3 review is DONE.
+
 - **Entry:** R2 review is DONE and R1 protocol, content, and security requirements are frozen enough to evaluate a transport.
 - **First activity / feasibility gate:** extract the Espressif NimBLE transport behind a project-owned interface. Prove that no esp_desktop_buddy semantic-core dependency or forbidden content/permission semantics remain, and prove an ESP32-C3 / ESP-IDF 5.5.3 build before product integration.
-- **Scope and donor inputs:** adapt the successfully extracted GATT/GAP transport, pairing/bond lifecycle, reconnect, bounded TX/RX queues, and teardown; implement a project-owned secure-link predicate; perform reconnect/full-snapshot resynchronization.
+- **Scope and donor inputs:** adapt only GAP/GATT/byte notification mechanics from pinned S5; use project UUIDv5 service/RX/TX identifiers, MTU 23, bounded byte queues, project-owned bonding/peer acceptance, a Companion-owned durable epoch plus host CSPRNG generation and Companion-first HELLO, teardown, and full-snapshot resynchronization. `tx_ready` is never product authorization.
 - **Out of scope:** Passport product navigation, final layout, character engine, PTT/STT, and automatic approvals.
 - **Required evidence:** ESP-IDF 5.5.3 C3 build, paired central/peripheral interoperability, and independent enforcement of the selected encryption/bonding/MITM-authentication/Secure-Connections/peer policy. Explicitly reject links that meet donor tx_ready but fail product policy. Also test retry/unpair, bounded queues, disconnect/reconnect snapshot recovery, teardown, and measured resource use.
 - **Stop for human action:** pairing trust prompts, physical device access, a material protocol/security decision, or unacceptable measured resource/RF behavior. If clean extraction, resource limits, IDF compatibility, or required security enforcement cannot be demonstrated, stop R3 for architecture review; do not adopt the Espressif semantic core as fallback.
 - **Exit evidence:** transport/core decoupling, project security-policy enforcement, reconnect/resync, bounded queues, teardown, and measured resource use pass independent review.
+
+[R3 secure bridge evidence](codex-r3-secure-bridge.md) records the exact extraction, GATT policy, implementation boundaries, build/host results, and remaining device-only evidence.
 
 ### R4 — Passport Product Integration
 
@@ -159,10 +163,14 @@ Complete each gate through its own Control Room review. A gate's exit evidence d
 
 ## 6. Open facts carried to later gates
 
-After R1, the following remain open: exact Hook payload/version semantics; production quota source transport; whether App Server quota can be read safely; BLE UUID/GATT schema and central compatibility; exact bonding/MITM/Secure Connections policy; BLE MTU/fragmentation and physical queue/resource acceptance within R1 hard maxima; authenticated generation establishment; audio framing/codec limits in R5; board-level security and RF acceptance; settings migration format; whether the product needs a visible wall clock; STT model/runtime performance; and the exact verified macOS composer-selection mechanism.
+During the pending R3 review, the following remain open: exact Hook payload/version semantics; production quota source transport; whether App Server quota can be read safely; real central compatibility and paired-device security; physical BLE queue/resource and RF acceptance within R1 hard maxima; audio framing/codec limits in R5; board-level security acceptance; settings migration format; whether the product needs a visible wall clock; STT model/runtime performance; and the exact verified macOS composer-selection mechanism. R3 selects UUID/GATT layout, MTU 23, Passport-side SC+MITM bonding policy, accepted-peer persistence, explicit Passport public-key pinning and pre-R1 authentication, and Companion-owned epoch-backed generation with Passport HELLO binding; see the R3 evidence document.
 
 Each gate must gather the evidence its scope needs. A donor README, successful donor build, or simulator run does not establish current Passport behavior. No arbitrary prompt, tool, or assistant content is approved for the device.
 
 ## R2 autonomous evidence
 
-[R2 production truth](codex-r2-companion-truth.md) records bounded source/identity/runtime infrastructure, host integration and the R3 input contract. Current production Hook ordering/outcome mapping and live quota paths remain unavailable where evidence is insufficient; no user Hook installation or device integration has occurred. Independent R2 review remains pending.
+[R2 production truth](codex-r2-companion-truth.md) records bounded source/identity/runtime infrastructure, host integration and the R3 input contract. Current production Hook ordering/outcome mapping and live quota paths remain unavailable where evidence is insufficient; no user Hook installation or device integration has occurred. That report records review status at its writing time; the current reviewed checkpoint marks R2 DONE and authorizes R3.
+
+## R3 autonomous evidence
+
+[R3 secure bridge](codex-r3-secure-bridge.md) records the pinned NimBLE transport extraction, project-owned byte boundary, security and generation policy, ESP32-C3 / ESP-IDF 5.5.3 firmware build, host fault tests, and device-only UNVERIFIED evidence. The implementation keeps R4 UI and voice integration out of scope and awaits independent Control Room review.

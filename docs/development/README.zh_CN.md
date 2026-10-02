@@ -19,6 +19,7 @@
 
 - [codex-ambient-dashboard.zh_CN.md](codex-ambient-dashboard.zh_CN.md)：Codex Ambient Dashboard vNext 权威架构与 R0–R7 路线图。
 - [codex-r1-contracts.zh_CN.md](codex-r1-contracts.zh_CN.md)：冻结 R1 主机契约、协议上限及可执行 R2 证据计划。
+- [codex-r3-secure-bridge.zh_CN.md](codex-r3-secure-bridge.zh_CN.md)：R3 NimBLE 提取、GATT/会话契约、安全策略及已验证/未验证证据。
 - [codex-buddy-reuse-audit.zh_CN.md](codex-buddy-reuse-audit.zh_CN.md)：已 pin 的 donor 来源、许可/来源证据及 R0 模块级决策。
 - [ai-guide.zh_CN.md](ai-guide.zh_CN.md)：AI 开发工作流（面向 AI 编程助手：上下文建立、需求拆解、BSP 边界、验收交付格式）。
 - [核心 AI 技能](../../skills/README.zh_CN.md)：开发、环境准备、构建、真机测试及诊断，包含安装和使用示例。

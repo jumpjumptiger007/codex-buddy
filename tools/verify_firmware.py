@@ -126,7 +126,8 @@ def verify_flash_images(
 
 
 def verify_firmware_layout(
-    merged: bytes, build_dir: Path, partition_table_offset: int, app_offset: int
+    merged: bytes, build_dir: Path, partition_table_offset: int, app_offset: int,
+    app_name: str = "FoloToy-AI-Passport.bin"
 ) -> list[Partition]:
     """Validate the configured partition table and its application image."""
     table = merged[
@@ -155,7 +156,7 @@ def verify_firmware_layout(
             f"application offset 0x{app_offset:x} must match exactly one app partition"
         )
     app_partition = matching_apps[0]
-    app_path = build_dir / "FoloToy-AI-Passport.bin"
+    app_path = build_dir / app_name
     app_size = app_path.stat().st_size
     if app_size > app_partition.size:
         raise ValueError(

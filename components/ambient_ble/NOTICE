@@ -1,0 +1,13 @@
+This product includes adaptations of NimBLE transport mechanics from
+espressif/esp-desktop-buddy, commit
+b6bac05db208717676e70180e5269d79f32b2d68, licensed under Apache-2.0.
+
+The adapted source areas are the pinned transport component's
+`buddy_transport_ble.c`, `buddy_transport_ble_gap.c`,
+`buddy_transport_ble_gatt.c`, and `buddy_transport_ble_tx.c`, together with
+its public transport header and private transport state header. This project
+replaces the source API, service identifiers, RX ownership, TX queue, security
+facts, and lifecycle handling. No Buddy core, message model, or semantic
+transport port is included.
+
+The pinned source tree contains a root LICENSE and no NOTICE file.

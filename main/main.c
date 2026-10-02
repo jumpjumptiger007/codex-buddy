@@ -1,6 +1,7 @@
 #include "bsp_display.h"
 #include "passport_ui_model.h"
 #include "passport_ui_shell.h"
+#include "ambient_r3_build_seam.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -12,6 +13,7 @@ static passport_ui_view_t s_initial_view;
 
 void app_main(void)
 {
+    ambient_r3_build_seam();
     ESP_LOGI(TAG, "Starting Passport product UI");
 
     esp_err_t err = bsp_display_init();

@@ -18,6 +18,8 @@ run_static_checks() {
     fi
 
     python3 tools/check_repo.py
+    python3 tests/test_r3_acceptance_isolation.py
+    PYTHONDONTWRITEBYTECODE=1 python3 tests/test_ambient_ble_boundary.py
 
     actionlint_bin="${ACTIONLINT_BIN:-}"
     if [[ -z "${actionlint_bin}" ]]; then
@@ -95,12 +97,28 @@ run_static_checks() {
         companion/core/ambient_transport.c \
         -o "${test_dir}/test_companion_core"
     "${test_dir}/test_companion_core"
-    for r2_suite in identifier_registry codex_source_adapter companion_ingestion companion_diagnostics companion_runtime companion_r2_integration; do
+    "${CC:-cc}" -D_GNU_SOURCE -DAMBIENT_BLE_HOST_TEST -std=c11 -Wall -Wextra -Werror \
+        -Itests/ambient_ble_stubs -Icomponents/ambient_ble/include -Icomponents/ambient_ble/src \
+        tests/test_ambient_ble_runtime.c tests/ambient_ble_stubs/ambient_ble_platform_fake.c \
+        components/ambient_ble/src/ambient_ble.c components/ambient_ble/src/ambient_ble_gap.c \
+        components/ambient_ble/src/ambient_ble_gatt.c components/ambient_ble/src/ambient_ble_tx.c \
+        components/ambient_ble/src/ambient_ble_peer_nvs.c components/ambient_ble/src/ambient_ble_ring.c \
+        -o "${test_dir}/test_ambient_ble_runtime"
+    "${test_dir}/test_ambient_ble_runtime"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Itests/ambient_ble_stubs -Icomponents/ambient_ble/include \
+        -Icompanion/core -Icomponents/ambient_session/include -Iacceptance/r3_device/main \
+        tests/test_r3_acceptance_policy.c -o "${test_dir}/test_r3_acceptance_policy"
+    "${test_dir}/test_r3_acceptance_policy"
+    for r2_suite in identifier_registry codex_source_adapter companion_ingestion companion_diagnostics companion_runtime companion_r2_integration companion_secure_bridge companion_ble_central; do
         "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Icompanion/core -Icompanion/mac -Itests \
             "tests/test_${r2_suite}.c" companion/mac/identifier_registry.c \
             companion/mac/codex_source_adapter.c companion/mac/codex_hook_contract.c \
             companion/mac/companion_ingestion.c companion/mac/companion_diagnostics.c \
             companion/mac/companion_runtime.c companion/mac/companion_core.c \
+            companion/mac/companion_secure_bridge.c companion/mac/companion_ble_central.c components/ambient_auth/src/ambient_auth.c \
+            components/ambient_generation/src/ambient_generation.c \
+            -Icomponents/ambient_generation/include -Icomponents/ambient_session/include -Icomponents/ambient_auth/include \
+            components/ambient_session/src/ambient_session.c \
             companion/mac/rollout_watcher.c companion/mac/rollout_quota_source.c \
             companion/mac/quota_reset_state_store.c companion/core/ambient_reducer.c \
             companion/core/ambient_dedup.c companion/core/ambient_quota.c \
@@ -193,6 +211,42 @@ run_static_checks() {
             -o "${test_dir}/test_demo_${demo}_runtime"
         "${test_dir}/test_demo_${demo}_runtime"
     done
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icomponents/ambient_ble/src \
+        tests/test_ambient_ble_ring.c components/ambient_ble/src/ambient_ble_ring.c \
+        -o "${test_dir}/test_ambient_ble_ring"
+    "${test_dir}/test_ambient_ble_ring"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icomponents/ambient_generation/include \
+        tests/test_ambient_generation.c components/ambient_generation/src/ambient_generation.c \
+        -o "${test_dir}/test_ambient_generation"
+    "${test_dir}/test_ambient_generation"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Itests -Icomponents/ambient_auth/include \
+        tests/test_ambient_auth.c components/ambient_auth/src/ambient_auth.c components/ambient_auth/src/ambient_identity.c \
+        -o "${test_dir}/test_ambient_auth"
+    "${test_dir}/test_ambient_auth"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icompanion/mac -Icomponents/ambient_generation/include \
+        tests/test_companion_generation_store.c companion/mac/companion_generation_store.c \
+        components/ambient_generation/src/ambient_generation.c \
+        -o "${test_dir}/test_companion_generation_store"
+    "${test_dir}/test_companion_generation_store"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror \
+        -Icomponents/ambient_session/include -Icomponents/ambient_auth/include -Icomponents/ambient_generation/include \
+        -Icompanion/core -Itests \
+        tests/test_ambient_session.c components/ambient_session/src/ambient_session.c \
+        components/ambient_generation/src/ambient_generation.c \
+        companion/core/ambient_wire.c companion/core/ambient_protocol.c \
+        companion/core/ambient_transport.c tests/ambient_fake_transport.c \
+        -o "${test_dir}/test_ambient_session"
+    "${test_dir}/test_ambient_session"
+    "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Itests -Icompanion/core \
+        -Icomponents/ambient_auth/include -Icomponents/ambient_session/include \
+        tests/test_ambient_authenticated_session.c components/ambient_auth/src/ambient_auth.c \
+        components/ambient_session/src/ambient_authenticated_session.c components/ambient_session/src/ambient_session.c \
+        companion/core/ambient_wire.c companion/core/ambient_protocol.c companion/core/ambient_transport.c \
+        tests/ambient_fake_transport.c -o "${test_dir}/test_ambient_authenticated_session"
+    "${test_dir}/test_ambient_authenticated_session"
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_deep_sleep_contract.py
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_passport_ui_startup.py
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_check_repo.py
@@ -200,11 +254,12 @@ run_static_checks() {
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_archive_firmware.py
     PYTHONDONTWRITEBYTECODE=1 python3 tests/test_install_passport_skills.py
     rm -rf "${test_dir}"
+    ./tools/check_r3_acceptance_mac.sh
     echo "Host tests: PASS"
 }
 
 run_firmware_checks() (
-    local validation_build_dir
+    # Subshell owns this variable through its EXIT trap (not a function local).
 
     if ! command -v idf.py >/dev/null 2>&1; then
         echo "ERROR: idf.py is not available; activate ESP-IDF 5.5.3 first." >&2

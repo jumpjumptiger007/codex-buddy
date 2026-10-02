@@ -1,0 +1,4 @@
+# Test-only worker stack; normal product defaults are not modified.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="../../partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="../../partitions.csv"
