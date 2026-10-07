@@ -74,11 +74,12 @@ require rewriting or translating the original upstream documents.
 
 - Upstream baseline documents cover AI Passport hardware, BSP behavior, baseline demos, engineering constraints, and acceptance methods.
 - Shared contribution and engineering documents cover code style, testing, commits, CI, and AI workflows grounded in this repository's real tools.
-- Fork-only product requirements, business logic, or assets stay in the fork's root README or `docs/assets/`.
+- In the independent `codex-buddy` project, project-specific product requirements, architecture, business logic, and project-only documentation belong in the maintained project documentation under `docs/`; the existing authoritative project documents remain valid.
+- For an actual downstream fork, fork-only customization follows [`docs/fork-guide.md`](../fork-guide.md), including fork-owned README or `docs/assets/` placement where applicable.
 
 ## Placement
 
-- Keep the tracked repository root limited to the AI/tool-discovery entry point (`AGENTS.md` and `AGENTS.zh_CN.md`), an optional fork README pair, license/build manifests, and ESP-IDF configuration.
+- Keep the tracked repository root limited to the AI/tool-discovery entry point (`AGENTS.md` and `AGENTS.zh_CN.md`), license/build manifests, and ESP-IDF configuration. An optional fork-owned root README pair applies only to an actual downstream fork following [`docs/fork-guide.md`](../fork-guide.md); `codex-buddy` does not use that ownership model by default.
 - Put project documentation and history in `docs/`, grouped by contribution, development, hardware, and software responsibility.
 - Put GitHub-recognized community files, templates, issue forms, and workflows in `.github/`.
 - Put reusable binary/source assets in `assets/`, project skills in `skills/`, and automation in `tools/`.

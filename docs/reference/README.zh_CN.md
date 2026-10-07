@@ -61,7 +61,7 @@
 
 一次发布可沉淀**一条或多条**可复用经验，每条作为独立条目新增，以发布版本（tag 或 commit）作为上下文。遵守仓库语言规则：默认 `.md` 路径用英文、配套 `.zh_CN.md` 用简体中文，并在同一次变更中对齐。
 
-条目是放在 `docs/reference/<username>/` 下的单个 `.md`（及其 `.zh_CN.md`），按条目内容概要命名（小写连字符，例如 `audio-compression-trade-offs.md`），描述主题而非时间戳。每条经验在提交前分流：通用、上游也受益的经验作为 PR 提交到上游 `FoloToy/ai-passport`；纯 fork 定制按 [`docs/fork-guide.md`](../fork-guide.zh_CN.md) 留在 fork。
+条目是放在 `docs/reference/<username>/` 下的单个 `.md`（及其 `.zh_CN.md`），按条目内容概要命名（小写连字符，例如 `audio-compression-trade-offs.md`），描述主题而非时间戳。每条经验在提交前分流：通用、可复用且能让上游受益的经验可作为 PR 提交到上游 `FoloToy/ai-passport`；`codex-buddy` 的项目专属定制留在这个独立项目，不提交上游。若操作的是实际下游 fork，其 fork 专属定制遵循 [`docs/fork-guide.md`](../fork-guide.zh_CN.md)。
 
 ## 归档应用
 

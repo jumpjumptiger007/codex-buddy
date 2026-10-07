@@ -121,12 +121,13 @@ The menu and `demo_*.c` pages on `main` are hardware-capability tests, not an ap
 Inspect an example without switching the current working tree:
 
 ```bash
-git branch -r --list 'origin/demo/*'
-git diff main...origin/demo/tetris-game -- main components tests
-git show origin/demo/tetris-game:main/demo_tetris.c
+git fetch upstream
+git branch -r --list 'upstream/demo/*'
+git diff main...upstream/demo/tetris-game -- main components tests
+git show upstream/demo/tetris-game:main/demo_tetris.c
 ```
 
-Start a new application. This repository hosts several independent projects on one baseline: after starting from `main`, create a `feature/*` branch and develop the application there — do not develop directly on `main`. Each project's final branch is `feature/*` (e.g. `feature/my-passport-app`), kept separate so `main` stays a clean upstream baseline and the projects do not entangle.
+Start a new application from this project's `main` by creating a `feature/*` branch; keep application work separate from the shared baseline. This independent repository's `main` tracks `origin/main` and is never automatically synchronized with FoloToy. Review upstream differences deliberately using the [upstream maintenance guide](development/ci/upstream-maintenance.md).
 
 ```bash
 git switch main

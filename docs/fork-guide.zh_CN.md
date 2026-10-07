@@ -4,6 +4,9 @@
 
 # Fork 工作流（Fork Guide）
 
+本文仅适用于实际的下游 GitHub fork 或 fork 式项目。当前 `codex-buddy` 仓库是独立仓库；其 remote
+与上游集成规则见[独立仓库上游维护指南](development/ci/upstream-maintenance.zh_CN.md)。
+
 ## 目录结构
 
 ```
@@ -32,9 +35,7 @@ sdkconfig.defaults            ESP32-C3、USB console、Flash、LVGL 默认配置
 
 有两个原因——(1) **随时与上游保持一致、无冲突**，给多任务并行开发提供最新基线；(2) **默认用户会开发很多小项目**，为了便于整理，通过分支（`feature/*`）保存每个项目，`main` 只作为同步基线不混入具体项目改动。
 
-**例外**：如果用户**执意要在 `main` 分支直接开发**，需要**停用/关闭 CI 的自动同步任务**（见 `.github/workflows/sync-main.yml`，说明见 [docs/development/ci/CI-sync-main.zh_CN.md](development/ci/CI-sync-main.zh_CN.md)），否则自动同步会把上游改动强行合入，产生冲突或覆盖本地开发内容。
-
-**fork 用户注意（整个 CI 通用）**：fork 默认的 GitHub Actions 是**关闭**的，需要**手动打开启用**（GitHub 仓库 Actions 页面 → 找到需要的 workflow，如 CI 自动同步 → Enable）后，对应的 CI 才会生效。
+**fork 用户注意**：GitHub 可能会默认关闭 fork 的 Actions。请在仓库 Actions 页面启用该下游 fork 需要的工作流。
 
 ## 给 fork 用户
 

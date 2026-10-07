@@ -212,7 +212,7 @@ commit, push, tag, and release.
    since the previous release and update both changelog languages as described
    in [Automated Build and Release](../ci/CI-build-and-release.md). Ordinary
    feature, application, and documentation pull requests skip this step.
-2. Commit the change and push it to the fork (`origin`) — confirm separately.
+2. Commit the change and push it to the authorized project remote — confirm separately. In this independent repository, `origin` is `codex-buddy`; upstream pull-request work uses a separate contribution fork remote (see the [upstream maintenance guide](../ci/upstream-maintenance.md)).
 3. Create and push a tag to trigger the release workflow — confirm separately.
 4. Let the tagged build produce the merged firmware `.bin`.
 5. Create or update the GitHub/GitLab release with the artifact — confirm
@@ -228,7 +228,7 @@ commit, push, tag, and release.
 
 - Follow the repository commit and pull-request rules
   ([commit-and-pr.md](../../contribution/commit-and-pr.md)).
-- Follow the fork workflow ([fork-guide.md](../../fork-guide.md)).
+- Follow the independent remote and integration model in the [upstream maintenance guide](../ci/upstream-maintenance.md). Only actual downstream forks should follow the [fork guide](../../fork-guide.md).
 - A tag-triggered build runs `build-firmware.yml`, which publishes the release
   only for a tag. See [CI-build-and-release.md](../ci/CI-build-and-release.md).
 - For day-to-day compilation prefer `idf.py build` (fast, incremental); use
@@ -253,11 +253,12 @@ is driven by the `experience-pr` skill.
 
 ### Focus
 
-Capture the fork's own `docs/` differences from upstream — the documents the
-developer created or changed on this fork. Extract only durable, reusable
+Capture `codex-buddy`'s project-specific `docs/` differences from `upstream/main` —
+the documents created or changed in this independent repository. Compare the
+current project HEAD with `upstream/main`, then extract durable, reusable
 learnings:
 
-- What the fork documents or changes that upstream does not, and why.
+- What `codex-buddy` documents or changes that upstream does not, and why.
 - Hardware facts, interfaces, timings, resource budgets, or failure behavior.
 - Build, validation, or release-flow improvements.
 - Generalizations that apply to the next release.
@@ -269,22 +270,23 @@ Decide where each learning belongs before submitting:
 - **Upstream the reusable, general experience** — learnings that benefit any
   user and belong in the upstream baseline. Submit as a PR to the upstream
   project.
-- **Keep fork-specific customization in the fork** — product-customized content,
-  fork-private business rules, or fork-only assets. Do not submit these
-  upstream; record them locally.
+- **Keep project-specific customization in `codex-buddy`** — product content,
+  project business rules, or assets not selected for upstream contribution. Do
+  not submit these upstream; record them in this repository. Apply
+  fork-specific rules only when operating on an actual downstream fork.
 
 ### Steps
 
 1. Confirm consent and a GitHub channel (GitHub MCP, a GitHub skill, or `gh`).
-2. Compare the fork to upstream to find the `docs/` differences.
+2. Compare the current `codex-buddy` HEAD with `upstream/main` to find project
+   `docs/` differences.
 3. Extract and route the reusable experience.
 4. Write a single entry under `docs/reference/<username>/` (one `.md` file plus
    its `.zh_CN.md` peer), named after the entry's content summary in
    lowercase-kebab-case, and link it from the experience index.
-5. Present the change for review, then commit, push to the fork, and open a PR
-   only after explicit approval.
+5. Present the change for review, then commit, push to the separate upstream-contribution fork (not this repository's `origin`), and open a PR only after explicit approval.
 
-Related: [experience index](../../reference/README.md), [fork workflow](../../fork-guide.md).
+Related: [experience index](../../reference/README.md), [upstream maintenance guide](../ci/upstream-maintenance.md), and the [downstream fork guide](../../fork-guide.md) when working on an actual fork.
 
 ## Action D: Archive the Application to Reference
 
@@ -308,8 +310,9 @@ driven by the `plays-archive` skill.
 3. Record the publish metadata — the bilingual title and description and the
    source address — which include the cover image by file name and format, but
    do not commit the cover image itself. The archive is text-only.
-4. Handle each branch's root README independently (see
-   [Action E](#action-e) for the required README sync).
+4. Apply [Action E](#action-e) only when archiving for an actual downstream
+   fork. This archive step does not create or maintain a fork-style root README
+   catalog in the independent `codex-buddy` repository.
 5. Commit only the summary on a dedicated branch; do not store the firmware
    `.bin` or the cover image.
 6. After review, open the archive PR against the upstream project.
@@ -323,31 +326,38 @@ driven by the `plays-archive` skill.
 Related: [application archive convention](../../reference/README.md),
 [`plays-archive` skill](../../../skills/plays-archive/SKILL.md).
 
-## Action E: Update the Root README
+## Action E: Downstream Fork Root README (Conditional)
 
-This action updates the fork's root `README.md` on the relevant branches to reflect
-the newly released or archived application.
+This action applies only when operating on an actual downstream GitHub fork or
+fork-style project that follows the [fork guide](../../fork-guide.md). It does
+not apply to the independent `codex-buddy` repository: completing or archiving
+an application here does not automatically create or maintain a fork-style root
+README catalog. Root README changes in `codex-buddy` require a separate request
+under the independent repository workflow.
 
-The root README path is intentionally reserved for the fork owner. Upstream's
-project overview lives at `docs/README.md`; a fork may add its own root README to
-explain its product without replacing upstream documentation.
+For a downstream fork, the root README path may be reserved for the fork owner.
+Upstream's project overview lives at `docs/README.md`; a fork may add its own
+root README to explain its product without replacing upstream documentation.
 
-The fork keeps `main` synced with upstream and puts product work on `feature/*`
-branches, so root READMEs exist on multiple branches. Handle each branch's root
-README independently — the `main` README and a `feature/*` branch README are
-separate decisions.
+In downstream forks following [the fork guide](../../fork-guide.md), `main` may
+track the upstream baseline while product work lives on `feature/*` branches.
+This independent repository keeps its own `main`; use the
+[upstream maintenance guide](../ci/upstream-maintenance.md) before integration.
+Handle each branch's root README independently — the `main` README and a
+`feature/*` branch README are separate decisions.
 
-### When this is recommended
+### When this applies
 
-The README update is an **optional** action like the other five, and it is also
-the default companion to archiving: when the application is archived to `docs/reference/`
-(action D), the README sync runs as part of that action. Archiving itself is
-optional — the developer may decline — but whenever a project is completed, the
-README should be refreshed on the hosting branch and on fork `main` so the
-application is registered where it is developed.
+Within a downstream fork, this is an **optional** action and may accompany an
+archive when the developer requests it. Archiving to `docs/reference/` does not
+by itself authorize root README creation or updates. The independent
+`codex-buddy` workflow uses the `docs/reference/` index and does not require a
+root README catalog.
 
 ### Rules
 
+- These ownership rules apply only to the actual downstream fork being worked
+  on. Do not infer them for `codex-buddy`.
 - Only touch fork-owned root READMEs (`README.md` / `README.zh_CN.md`); do not
   modify the upstream project overview at `docs/README.md`.
 - Check the root README on each relevant branch (`main` and the current
@@ -374,10 +384,11 @@ application is registered where it is developed.
 3. On fork `main`: update the root README pair so the released application is
    discoverable from the repository landing page, fully including the hosting
    branch's README content.
-4. Commit the README updates directly to the branch / fork `main` (fork-owned
-   content); do not open a PR for this unless it is an upstream change.
+4. For the actual downstream fork only, commit separately authorized README
+   updates directly to its branch / fork `main` (fork-owned content); do not
+   open a PR for this unless it is an upstream change.
 
-Related: [fork workflow and root README ownership](../../fork-guide.md),
+Related: [downstream fork workflow and root README ownership](../../fork-guide.md),
 [`plays-archive` skill](../../../skills/plays-archive/SKILL.md),
 [documentation conventions](../../contribution/doc-conventions.md).
 
@@ -386,7 +397,7 @@ Related: [fork workflow and root README ownership](../../fork-guide.md),
 This action gathers the releasing developer's own improvement points and files
 them as feature request issues against the upstream project. The workflow is
 driven by the `issue-suggestions` skill. Issues are filed against the upstream
-project, not the fork.
+project, not this independent `codex-buddy` repository.
 
 ### Steps
 
@@ -413,5 +424,5 @@ Related: [filing issues reference](file-issues.md),
 ## Related documents
 
 - Firmware publishing: [publish-to-community.md](publish-to-community.md)
-- Fork workflow and root README ownership: [fork-guide.md](../../fork-guide.md)
+- Downstream fork workflow and root README ownership (when applicable): [fork-guide.md](../../fork-guide.md)
 - Commit and pull-request rules: [commit-and-pr.md](../../contribution/commit-and-pr.md)

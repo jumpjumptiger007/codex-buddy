@@ -155,7 +155,7 @@ flowchart TD
 ### 步骤
 
 1. 准备仓库发布时，检查自上一版本以来已合并的用户可见变化，并按[自动构建与发布](../ci/CI-build-and-release.zh_CN.md)同时更新中英文变更日志。普通功能、应用和文档 PR 跳过此步骤。
-2. 提交变更并推送到 fork（`origin`）——分开确认。
+2. 提交变更并推送到获准的项目 remote——分开确认。本独立仓库的 `origin` 是 `codex-buddy`；上游 PR 工作应使用[上游维护指南](../ci/upstream-maintenance.zh_CN.md)所述的单独贡献 fork remote。
 3. 创建并推送 tag 以触发 release 工作流——分开确认。
 4. 让 tagged 构建产生合并固件 `.bin`。
 5. 用产物创建或更新 GitHub/GitLab release——分开确认。工作流把 release 标题默认设为版本/tag 名；release 发布后，把它改成项目特性名加版本号。
@@ -165,7 +165,7 @@ flowchart TD
 ### 规则
 
 - 遵守仓库提交与 PR 规则（[commit-and-pr.zh_CN.md](../../contribution/commit-and-pr.zh_CN.md)）。
-- 遵守 fork 工作流（[fork-guide.zh_CN.md](../../fork-guide.zh_CN.md)）。
+- 遵循[上游维护指南](../ci/upstream-maintenance.zh_CN.md)中的独立 remote 与集成规则。只有在实际下游 fork 中工作时，才遵循[fork 指南](../../fork-guide.zh_CN.md)。
 - tag 触发的构建运行 `build-firmware.yml`，它只为 tag 发布 release。见 [CI-build-and-release.zh_CN.md](../ci/CI-build-and-release.zh_CN.md)。
 - 日常编译优先用 `idf.py build`（快、增量）；仅当需要合并、字节校验的 `0x0` 完整镜像时才用 `./tools/validate.sh --firmware`，例如发布或交付前。
 - 工作流用默认标题（版本/tag 名）创建 release（来自 `softprops/action-gh-release` 与 `github.ref_name`）。release 发布后，把标题改成项目特性名加版本号——例如 `Voice Keychain v1.2.0`。版本是 tag，特性名是应用的 发布名，来自共享 [发布属性](#published-profile)。
@@ -179,9 +179,9 @@ flowchart TD
 
 ### 重点
 
-捕获 fork 相对上游的 `docs/` 差异——开发者在本 fork 上创建或改动的文档。只提取持久、可复用的学习点：
+捕获 `codex-buddy` 相对 `upstream/main` 的项目专属 `docs/` 差异——在本独立仓库中创建或修改的文档。将当前项目 HEAD 与 `upstream/main` 比较后，只提取持久、可复用的学习点：
 
-- fork 记录或改动、而上游没有的内容及其原因。
+- `codex-buddy` 记录或改动、而上游没有的内容及其原因。
 - 硬件事实、接口、时序、资源预算或失败行为。
 - 构建、验证或发布流程的改进。
 - 能应用到下次发布的泛化结论。
@@ -191,17 +191,17 @@ flowchart TD
 提交前决定每个学习点的归属：
 
 - **可复用、通用经验交给上游**——对任何用户都有益、属于上游基线的学习点，作为 PR 提交到上游项目。
-- **fork 专属定制留在 fork**——产品定制内容、fork 私有业务规则或 fork 专属素材。不提交上游，就地记录。
+- **项目专属定制留在 `codex-buddy`**——产品内容、项目业务规则或未选定为上游贡献的素材。不提交上游，记录在本仓库。只有在实际下游 fork 中工作时才应用 fork 专属规则。
 
 ### 步骤
 
 1. 确认同意与可用 GitHub 通道（GitHub MCP、GitHub skill 或 `gh`）。
-2. 对比 fork 与上游，找出 `docs/` 差异。
+2. 对比当前 `codex-buddy` HEAD 与 `upstream/main`，找出项目 `docs/` 差异。
 3. 提取并路由可复用经验。
 4. 在 `docs/reference/<username>/` 下写单个条目（一个 `.md` 文件加它的 `.zh_CN.md`），命名遵循 lowercase-kebab-case，并在经验索引中链接它。
-5. 提交变更供审查，然后在明确批准后才 commit、push 到 fork 并开 PR。
+5. 提交变更供审查；只有获得明确批准后，才 commit、push 到单独的上游贡献 fork（不是本仓库的 `origin`）并开 PR，见[上游维护指南](../ci/upstream-maintenance.zh_CN.md)。
 
-相关：[经验索引](../../reference/README.zh_CN.md)、[fork 工作流](../../fork-guide.zh_CN.md)。
+相关：[经验索引](../../reference/README.zh_CN.md)、[上游维护指南](../ci/upstream-maintenance.zh_CN.md)；仅在实际下游 fork 中工作时参考[fork 指南](../../fork-guide.zh_CN.md)。
 
 ## 动作 D：归档应用到参考区
 
@@ -217,7 +217,7 @@ flowchart TD
 1. 确认同意与可用 GitHub 通道（GitHub MCP、GitHub skill 或 `gh`）。
 2. 在相对仓库根目录的 `docs/reference/<username>/<app-name>/` 下生成双语 AI 功能摘要（`README.md` / `.zh_CN.md`），存在根 README 时合并它，并在 `docs/reference/README.md` 的中英文索引中登记。
 3. 记录发布元数据——双语标题与简介、源码地址——其中以文件名和格式记录封面图，但**不提交封面图本身**。归档仅文本。
-4. 独立处理每个分支的根 README（必需 README 同步见 [动作 E](#action-e)）。
+4. 只有为实际下游 fork 归档时才应用[动作 E](#action-e)。本归档流程不会为独立的 `codex-buddy` 仓库创建或维护 fork 式根 README 目录。
 5. 只在独立分支提交摘要；不存储固件 `.bin` 或封面图。
 6. 审查后向上游项目开归档 PR。
 
@@ -228,21 +228,22 @@ flowchart TD
 
 相关：[应用归档约定](../../reference/README.zh_CN.md)、[`plays-archive` skill](../../../skills/plays-archive/SKILL.zh_CN.md)。
 
-## 动作 E：更新根 README
+## 动作 E：下游 Fork 根 README（条件适用）
 
-本动作在相关分支上更新 fork 的根 `README.md`，以反映新发布或新归档的应用。
+本动作仅适用于遵循[fork 指南](../../fork-guide.zh_CN.md)的实际下游 GitHub fork 或 fork 式项目，不适用于独立的 `codex-buddy` 仓库。在此仓库完成或归档应用，不会自动创建或维护 fork 式根 README 目录。`codex-buddy` 的根 README 变更须按独立仓库工作流另行提出。
 
-根 README 路径刻意留给 fork 所有者。上游的项目概览在 `docs/README.md`；fork 可以加自己的根 README 说明产品，而不替换上游文档。
+对于下游 fork，根 README 路径可留给 fork 所有者。上游项目概览在 `docs/README.md`；fork 可以添加自己的根 README 介绍产品，而不替换上游文档。
 
-fork 让 `main` 与上游同步、把产品工作放在 `feature/*` 分支上，因此根 README 存在于多个分支。独立处理每个分支的根 README——`main` 的 README 与 `feature/*` 分支的 README 是不同决定。
+遵循[fork 指南](../../fork-guide.zh_CN.md)的下游 fork 可以让 `main` 跟踪上游基线，并把产品工作放在 `feature/*` 分支。本独立仓库维护自己的 `main`；集成前请参考[上游维护指南](../ci/upstream-maintenance.zh_CN.md)。独立处理每个分支的根 README——`main` 的 README 与 `feature/*` 分支的 README 是不同决定。
 
-### 何时推荐
+### 何时适用
 
-README 更新与其他五项一样是**可选**动作，也是归档的默认伴随动作：当应用归档到 `docs/reference/`（动作 D）时，README 同步随该动作运行。归档本身可选——开发者可拒绝——但每当项目完成，都应在承载分支与 fork `main` 上刷新 README，让应用在它被开发的地方被登记。
+在下游 fork 中，本动作是**可选**的，开发者提出要求时可与归档一起进行。归档到 `docs/reference/` 本身并不授权创建或更新根 README。独立的 `codex-buddy` 使用 `docs/reference/` 索引，不要求根 README 目录。
 
 ### 规则
 
-- 只碰 fork 拥有的根 README（`README.md` / `README.zh_CN.md`）；不改 `docs/README.md` 的上游项目概览。
+- 这些归属规则仅适用于当前操作的实际下游 fork，不要将它们推断到 `codex-buddy`。
+- 只碰该 fork 所有的根 README（`README.md` / `README.zh_CN.md`）；不改 `docs/README.md` 的上游项目概览。
 - 检查每个相关分支（`main` 与当前 `feature/*` 分支）的根 README，而不只是分支其一。
 - `feature/*` 分支的根 README **只介绍本分支自己的应用**——做什么、怎么用、相关说明；全项目目录只放在 fork `main`，不要在分支上重复它，也不要把目录简化成链接。
 - fork `main` 的根 README 是 **fork 项目的目录**：它**完整包含**各项目自身 README 的内容——应用做什么、怎么用的完整描述（交互、模式、按键、持久化与说明）——而不是一行简介加分支链接。内容取自承载分支的 README。
@@ -254,13 +255,13 @@ README 更新与其他五项一样是**可选**动作，也是归档的默认伴
 1. 确认同意与可用 GitHub 通道（GitHub MCP、GitHub skill 或 `gh`）。
 2. 在承载 `feature/*` 分支：若双语 README 对缺失则创建，或更新以添加/刷新应用自身的描述。
 3. 在 fork `main`：更新根 README 对，让已发布应用可从仓库落地页被发现，完整包含承载分支 README 的内容。
-4. 直接把 README 更新提交到分支 / fork `main`（fork 拥有内容）；除非是上游变更，否则不开 PR。
+4. 仅对实际下游 fork，在获得单独授权后直接把 README 更新提交到其分支 / fork `main`（fork 所有内容）；除非是上游变更，否则不开 PR。
 
-相关：[fork 工作流与根 README 归属](../../fork-guide.zh_CN.md)、[`plays-archive` skill](../../../skills/plays-archive/SKILL.zh_CN.md)、[文档规范](../../contribution/doc-conventions.zh_CN.md)。
+相关：仅在实际下游 fork 中工作时适用的[fork 工作流与根 README 归属](../../fork-guide.zh_CN.md)、[`plays-archive` skill](../../../skills/plays-archive/SKILL.zh_CN.md)、[文档规范](../../contribution/doc-conventions.zh_CN.md)。
 
 ## 动作 F：提交 issue
 
-本动作收集发布者的改进点，作为 feature request issue 提交到上游项目。工作流由 `issue-suggestions` skill 驱动。issue 提交到上游项目，而非 fork。
+本动作收集发布者的改进点，作为 feature request issue 提交到上游项目。工作流由 `issue-suggestions` skill 驱动。issue 提交到上游项目，而非独立的 `codex-buddy` 仓库。
 
 ### 步骤
 
@@ -282,5 +283,5 @@ README 更新与其他五项一样是**可选**动作，也是归档的默认伴
 ## 相关文档
 
 - 固件发布：[publish-to-community.zh_CN.md](publish-to-community.zh_CN.md)
-- Fork 工作流与根 README 归属：[fork-guide.zh_CN.md](../../fork-guide.zh_CN.md)
+- 仅适用于实际下游 fork 的 fork 工作流与根 README 归属：[fork-guide.zh_CN.md](../../fork-guide.zh_CN.md)
 - 提交与 PR 规则：[commit-and-pr.zh_CN.md](../../contribution/commit-and-pr.zh_CN.md)

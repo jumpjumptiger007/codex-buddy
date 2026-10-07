@@ -41,7 +41,7 @@
 
 ## Git 与授权
 
-- 本项目使用独立仓库，不采用上游 fork 工作流。`upstream` 是 `FoloToy/ai-passport`，用于基线/参考同步及 donor/demo 检查。`origin` 配置后指向本项目自己的仓库。
+- 本项目使用独立仓库：`origin` 是 `https://github.com/jumpjumptiger007/codex-buddy.git`，`upstream` 是 `https://github.com/FoloToy/ai-passport.git`，本地 `main` 跟踪 `origin/main`。`upstream/main` 仅作参考；必须先审查差异，上游集成须作为单独且经过审查的任务谨慎进行。
 - 本仓库继承的上游/参考分支说明应按这里的 `upstream` 远端解释；例如继承说明中的 `origin/demo/*` 在此处对应 `upstream/demo/*`。
 - 修改前检查 `git status --short --branch`。保留无关的用户修改，不得覆盖、清理或将它们混入当前任务变更。
 - 不得执行破坏性 Git 操作或改写共享历史。只有当前任务或项目工作流明确授权时，才可 commit、push、flash、擦除、部署、发布或公开内容。

@@ -23,8 +23,10 @@ description: 固件发布之后，收集可复用的开发经验并作为文档 
    能力）、再退到 `gh` CLI（`gh auth status`）。若都不可用，则生成完整变更内容供开发者
    手动粘贴，然后停止；绝不替开发者提交。
 3. **绝不在当前分支上修改或提交。** 发布经验通常来自当前工作分支，但该变更**不得**提交到
-   开发者当前分支。要以最新上游 `main` 为干净基线，另起一个独立分支或 worktree 承载，推到
-   开发者的 fork（`origin`），并从该 fork 分支向上游 `FoloToy/ai-passport` 开 PR。
+   开发者当前分支。要以最新上游 `main` 为干净基线，另起一个独立分支或 worktree。
+   推送到 `FoloToy/ai-passport` 的单独 fork，并从该 fork 分支向上游开 PR。
+   在 `codex-buddy` checkout 中，`origin` 属于 `jumpjumptiger007/codex-buddy`；请为
+   `https://github.com/jumpjumptiger007/ai-passport.git` 配置并使用 `contribution` 等单独 remote。
    保持当前 checkout 不被改动。
 4. **审查前不得提交。** 先把一切起草好、展示给开发者，等待明确批准。在开发者审查并授权
    之前，不 commit、不 push、不开 PR。开 PR 还需要单独的再次确认。
@@ -40,19 +42,20 @@ description: 固件发布之后，收集可复用的开发经验并作为文档 
 git remote add upstream https://github.com/FoloToy/ai-passport.git
 ```
 
-若 fork 的 `origin/main` 已与上游 `main` 同步，可用 `git fetch origin` 代替
-`git fetch upstream`。基于某来源建分支前，先确认哪个来源是当前最新的。
+请 fetch `upstream` 以检查当前 FoloToy 基线。不要把本仓库的 `origin/main` 当作上游贡献 fork；它是
+独立的 `codex-buddy` 分支。
 
 ## 收集可复用经验
 
-聚焦 **fork 相对上游的 `docs/` 差异**——开发者在 fork 上自行创建或变更、因而与上游不一致
-的 `docs/` 文档。这些是可复用、属 fork 独有的经验，值得记录。通过对比 fork 与上游基线找出：
+聚焦 **codex-buddy 项目相对上游的 `docs/` 差异**——独立项目中创建或变更、因而与上游不同的
+`docs/` 文档。这些是可复用的项目专属经验，值得记录。对比当前 codex-buddy `HEAD` 和项目文档与
+`upstream/main`：
 
 ```bash
-# 相对上游产生差异（fork 上创建或变更）的 docs/ 文件
+# 相对上游有差异（在 codex-buddy 中创建或变更）的项目文档
 git diff --name-only upstream/main...HEAD -- docs/
 
-# 只在本 fork 存在、上游 main 没有的 docs/ 文件
+# 只在 codex-buddy 存在、上游 main 没有的项目文档
 comm -23 \
   <(git ls-tree -r --name-only HEAD -- docs/ | sort) \
   <(git ls-tree -r --name-only upstream/main -- docs/ | sort)
@@ -60,25 +63,26 @@ comm -23 \
 
 从这些差异文档中，只提取可持续、可复用的经验：
 
-- fork 记录或变更、而上游没有的内容，以及原因。
-- fork 记录的硬件事实、接口、时序、资源预算或失败行为。
-- fork 做出的构建、验证或发布流程改进。
+- codex-buddy 记录或变更、而上游没有的内容，以及原因。
+- 项目文档记录的硬件事实、接口、时序、资源预算或失败行为。
+- 项目做出的构建、验证或发布流程改进。
 - 可推广到下一次发布的通用结论。
 
 **不**保留临时调试笔记、半成品实验、或只解释这一次发布的零散信息。
 
 ## 经验分流
 
-并非每条 fork 差异都属于上游。提交前先确定每条经验归属：
+并非每条项目专属差异都属于上游。提交前先确定每条经验归属：
 
 - **返回上游：通用、上游也受益的经验** —— 对任何 AI Passport 用户都有价值、应属于上游基线的
   经验（例如通用的构建/验证改进、可公开的上游硬件事实、可复用的接口或发布流程改进）。这些
   作为 PR 提交到上游 `FoloToy/ai-passport`。
-- **留在 fork：纯 fork 产品定制** —— 产品定制内容、fork 私有的业务规则、或 fork 专属资源，
-  按 `fork-guide.md` 的规定**不得**提交回上游。这些**不要**提交上游；作为本地文档变更记录即可
-  （见 [`docs/fork-guide.md`](../../docs/fork-guide.zh_CN.md) 与 fork README / `docs/assets/`）。
+- **留在 codex-buddy：项目专属定制** —— 产品定制内容、项目私有的业务规则或项目专属资源，
+  不应提交回上游。这些**不要**提交上游；作为独立项目的本地文档变更记录即可。
+  [`docs/fork-guide.md`](../../docs/fork-guide.zh_CN.md) 仅适用于遵循该指南的实际下游 fork。
 
-按这个分流为每条经验定归属；不要把 fork 专属定制塞进上游 PR。
+按这个分流为每条经验定归属；不要把项目专属定制放进上游 PR。codex-buddy 的 `origin` 是独立项目
+remote；上游贡献工作使用单独的贡献 fork。
 
 ## 写入经验条目
 
@@ -97,9 +101,10 @@ comm -23 \
 
 ## 审查与提交
 
-1. 把 diff 和草案交给开发者，确认分流归属（上游 vs 留在 fork），等待明确授权。
+1. 把 diff 和草案交给开发者，确认分流归属（上游 vs 留在 `codex-buddy` 独立项目），等待明确授权。
 2. 批准后在独立分支上 commit（英文祈使句 Conventional Commit 标题，例如
-   `docs(development): add post-release experience notes`）并推到开发者的 fork（`origin`）。
+   `docs(development): add post-release experience notes`），并推到单独的上游贡献 fork remote，而不是
+   `codex-buddy` 的 `origin`。
 3. 用英文完整填写上游 `.github/PULL_REQUEST_TEMPLATE.md`，并分别上报 Build、Host tests、
    Device tests、Unverified。
 4. 开 PR 前单独征求确认，然后通过第一个可用的 GitHub 通道（GitHub MCP、GitHub skill、

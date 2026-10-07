@@ -23,10 +23,13 @@ Do not create, write, or commit anything until every gate below is satisfied.
    Ask the developer to confirm they agree to archive the application. If they
    decline, stop immediately.
 2. **Never modify or commit on the current branch.** Base the archive on the
-   latest upstream `main` for a clean baseline, create a dedicated branch or
-   worktree, push it to the developer's fork (`origin`), and open the PR from
-   that fork branch against the upstream `FoloToy/ai-passport`. Leave the current
-   checkout untouched.
+   latest upstream `main` for a clean baseline and create a dedicated branch or
+   worktree. Push to a separate fork of `FoloToy/ai-passport` and open the PR
+   from that fork branch. In the `codex-buddy` checkout, `origin` belongs to
+   `jumpjumptiger007/codex-buddy`; configure and use a separate remote such as
+   `contribution` for `https://github.com/jumpjumptiger007/ai-passport.git`.
+   Leave the current checkout and its `origin` untouched unless a separate
+   workflow explicitly authorizes a change.
 3. **No credentials or private data.** Never include credentials, device QR
    secrets, private device links, personal data, or unsanitized logs. Run
    `python3 tools/check_repo.py` before committing anything.
@@ -41,15 +44,19 @@ path `docs/reference/<username>/<app-name>/`. See
 
 ## Check the project README
 
-Before generating the summary, check the **root README** of both the `main`
-branch and the current branch:
+Before generating the summary, check whether a **root README** exists on the
+relevant source branch and current archive branch:
 
 - `git ls-tree --name-only main README.md` — is there a README on `main`?
 - `test -f README.md` — is there a README on the current branch?
 
-Follow the repository rule that the root README path is reserved for the fork
-owner (see `docs/fork-guide.md`); do not create a root README unless the fork
-actually owns one.
+The fork-owner/root-README rules in [`docs/fork-guide.md`](../../docs/fork-guide.md)
+apply only when working on an actual downstream fork that follows that guide.
+For archive work in the independent `codex-buddy` repository, a root README may
+inform the functional summary, but do not automatically create or maintain a
+fork-style root README catalog. Keep the archive discoverable through
+`docs/reference/README.md`. Any separate root README change in codex-buddy
+requires its own authorization.
 
 1. **If a README exists** (on `main` or the current branch): when archiving, **merge
    the README content into the functional summary** so the summary reflects the
@@ -57,13 +64,10 @@ actually owns one.
    kept for the branch that owns it.
 2. **If no README exists**: summarize directly from the implementation, with no
    README merge.
-3. **After archiving is complete**, handle each branch's root README independently
-   (not as a single combined decision):
-   - For a branch with **no** root README, **create** (or update) the README on
-     that branch so the archived application is discoverable from the fork's own
-     README.
-   - For a branch that already **has** a root README, **prompt the developer to
-     update it** to reflect the new archived application.
+3. **Only for an actual downstream fork following `docs/fork-guide.*`**, handle
+   each branch's root README according to that guide. Do not apply fork-owner
+   rules to the independent `codex-buddy` repository or automatically add an
+   archive catalog to its root README.
 
 ## Generate the functional summary
 
@@ -84,8 +88,9 @@ publishing artifact). Record:
 - The cover image file name and format, recorded as publish metadata only — the
   cover image itself is **not** committed (the archive is text-only).
 
-If the root README exists, merge its content into the summary rather than
-ignoring the human-facing description.
+If a relevant root README exists, merge its content into the summary rather
+than ignoring the human-facing description. This does not imply a root README
+change.
 
 Write the default `.md` in English and the `.zh_CN.md` in Simplified Chinese,
 aligned in the same change. Register the application in both language versions
@@ -109,8 +114,9 @@ convention in [`docs/brand/README.md`](../../docs/brand/README.md).
 
 Commit the summary on the dedicated branch (English imperative
 Conventional Commit title, for example
-`docs(reference): add <app-name> application archive`). If a root README was created
-or updated, include it in the same change. Do **not** store the merged
+`docs(reference): add <app-name> application archive`). Include a root README
+only when operating on an actual downstream fork under its fork-guide rules
+and that change is authorized. Do **not** store the merged
 firmware `.bin` here; it is a build/publish artifact. Report Build, Host tests,
 Device tests, and Unverified separately.
 

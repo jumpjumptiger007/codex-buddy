@@ -117,12 +117,13 @@
 查看示例而不切换当前工作区：
 
 ```bash
-git branch -r --list 'origin/demo/*'
-git diff main...origin/demo/tetris-game -- main components tests
-git show origin/demo/tetris-game:main/demo_tetris.c
+git fetch upstream
+git branch -r --list 'upstream/demo/*'
+git diff main...upstream/demo/tetris-game -- main components tests
+git show upstream/demo/tetris-game:main/demo_tetris.c
 ```
 
-开始新应用。本仓库在同一个基线上承载多个独立项目：从 `main` 开始后，应创建 `feature/*` 分支并在该分支上开发，**不要**直接在 `main` 上开发。每个项目的最终分支都是 `feature/*`（如 `feature/my-passport-app`），让 `main` 保持干净的上游基线，各项目互不纠缠。
+开始新应用时，从本项目的 `main` 创建 `feature/*` 分支，让应用开发与共享基线保持分离。本独立仓库的 `main` 跟踪 `origin/main`，不会自动与 FoloToy 同步。请按[上游维护指南](development/ci/upstream-maintenance.zh_CN.md)审查上游差异。
 
 ```bash
 git switch main

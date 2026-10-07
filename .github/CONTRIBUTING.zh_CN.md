@@ -13,7 +13,8 @@
   [AI 硬件开发指南](/docs/hardware-design/AI_HARDWARE_DEVELOPMENT_GUIDE.zh_CN.md) 的完整硬件上下文。
 - 参与社区时请遵守 [`CODE_OF_CONDUCT.zh_CN.md`](/.github/CODE_OF_CONDUCT.zh_CN.md)；普通使用问题见 [`SUPPORT.zh_CN.md`](/.github/SUPPORT.zh_CN.md)。
 - 不要提交凭证、令牌、授权文件或个人数据。
-- 仓库的 `main` 分支始终与上游基线保持同步；fork 用户在 `feature/*` 分支开发功能（见 `docs/fork-guide.md`）。
+- 本独立仓库的 `main` 跟踪 `origin/main`；集成前须审查上游变更。实际的下游 fork 可遵循
+  [`docs/fork-guide.zh_CN.md`](/docs/fork-guide.zh_CN.md)。
 
 ## 开发与验证
 

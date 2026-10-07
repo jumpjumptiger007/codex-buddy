@@ -13,7 +13,7 @@ Use this when the project is being **released** — that is, when the code is fi
 When the developer says "publish" or "release", the first thing to decide is **where** to publish. Do not assume a route.
 
 - **To the community** — release the firmware to the [AI Passport Community market](https://ai-passport.folotoy.cn). Use the publisher workflow below. See also the [project completion flow](project-completion.md) once it is published.
-- **To Git** — publish the finished code to a version-controlled repository. The flow is: commit the finished code, then open a release for it. The release artifact may be produced by the CI/CD pipeline (**recommended**, tag-triggered via `.github/workflows/build-firmware.yml`), or it may be a local `.bin` the developer already built. Follow the repository commit and PR rules (`docs/contribution/commit-and-pr.md`) and the fork workflow (`docs/fork-guide.md`); see [`CI-build-and-release.md`](../ci/CI-build-and-release.md) for the automated build and release artifacts.
+- **To Git** — publish the finished code to a version-controlled repository. The flow is: commit the finished code, then open a release for it. The release artifact may be produced by the CI/CD pipeline (**recommended**, tag-triggered via `.github/workflows/build-firmware.yml`), or it may be a local `.bin` the developer already built. Publish this independent repository to its configured project remote; actual downstream forks may follow the [fork workflow](../../fork-guide.md). See [`CI-build-and-release.md`](../ci/CI-build-and-release.md) for the automated build and release artifacts.
 - **Neither yet** — the code is not finished and usable; keep developing, do not publish.
 
 The workflow is driven by the official publisher skill. Running the prompt once makes the assistant install the skill from the official bundle; nothing is committed into the repository.
@@ -32,7 +32,7 @@ The skill's `SKILL.md` defines the exact workflow: inspect the project, prepare 
   [configured firmware layout](../engineering/firmware-layout.md).
   Never substitute the app-only `.bin` produced by `idf.py build`.
 - **Cover**: a representative JPEG / PNG / WebP image (<= 10 MiB).
-- **Source**: the public HTTPS Git page for the firmware repository — GitHub, Gitee, GitLab, Codeberg, or another publicly reachable HTTPS Git repository page. A fork owner publishes from their fork's source page, resolved from `git remote -v`.
+- **Source**: the public HTTPS Git page for the firmware repository — GitHub, Gitee, GitLab, Codeberg, or another publicly reachable HTTPS Git repository page. An independent project publishes its own project repository URL; an actual fork publishes its fork repository URL. For `codex-buddy`, the source is its configured project remote, `origin` (`https://github.com/jumpjumptiger007/codex-buddy`). Derive and verify the public HTTPS URL deliberately from the configured remote and repository visibility; do not assume every project is a fork.
 
 ## Safety and boundaries
 

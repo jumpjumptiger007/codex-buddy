@@ -41,7 +41,7 @@ If a required skill or tool is unavailable, follow the active task and environme
 
 ## Git and authorization
 
-- This is an independent repository, not the upstream fork workflow. `upstream` is `FoloToy/ai-passport`, used for baseline/reference synchronization and donor/demo inspection. `origin`, once configured, is this project's own repository.
+- This is an independent repository: `origin` is `https://github.com/jumpjumptiger007/codex-buddy.git`, `upstream` is `https://github.com/FoloToy/ai-passport.git`, and local `main` tracks `origin/main`. `upstream/main` is a reference; review divergence and integrate upstream changes only in a deliberate, separately reviewed task.
 - Interpret inherited upstream/reference branch instructions against the `upstream` remote in this repository; for example, inherited `origin/demo/*` references mean `upstream/demo/*` here.
 - Check `git status --short --branch` before editing. Preserve unrelated user changes; do not overwrite, clean, or include them in a task change.
 - Do not perform destructive Git operations or rewrite shared history. Commit, push, flash, erase, deploy, release, and publish only when explicitly authorized by the active task or project workflow.

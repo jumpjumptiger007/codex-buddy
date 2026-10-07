@@ -32,10 +32,12 @@ These gates are the highest-priority constraints.
 3. **Never modify or commit on the current branch.** The release experience is
    usually derived from the current working branch, but the change must **not**
    be committed on the developer's current branch. Base the work on the latest
-   upstream `main` for a clean baseline, create a dedicated branch or worktree,
-   push it to the developer's fork (`origin`), and open the PR from that fork
-   branch against the upstream `FoloToy/ai-passport`. Leave the current checkout
-   untouched.
+   upstream `main` for a clean baseline and create a dedicated branch or
+   worktree. Push to a separate fork of `FoloToy/ai-passport` and open the PR
+   from that fork branch. In the `codex-buddy` checkout, `origin` belongs to
+   `jumpjumptiger007/codex-buddy`; configure and use a separate remote such as
+   `contribution` for `https://github.com/jumpjumptiger007/ai-passport.git`.
+   Leave the current checkout untouched.
 4. **Never submit before review.** Draft everything first, show it to the
    developer, and wait for explicit approval. Do not commit, push, or open a PR
    until the developer has reviewed and authorized it. Opening a PR also
@@ -54,23 +56,23 @@ first:
 git remote add upstream https://github.com/FoloToy/ai-passport.git
 ```
 
-If the fork's `origin/main` is already synchronized with the upstream `main`,
-`git fetch origin` may be used instead of `git fetch upstream`. Confirm which
-source is current before basing the branch on it.
+Fetch `upstream` to inspect the current FoloToy baseline. Do not treat this
+repository's `origin/main` as the upstream contribution fork; it is the
+independent `codex-buddy` branch.
 
 ## Collect reusable experience
 
-Focus on the **fork's own `docs/` differences from upstream** — the documents
-under `docs/` that the developer created or changed on this fork and that
-therefore diverge from upstream. These are the reuseable, fork-specific
-learnings worth recording. Find them by comparing this fork to the upstream
-baseline:
+Focus on **codex-buddy's project-specific `docs/` differences from upstream** —
+the documents under `docs/` created or changed in the independent project and
+therefore different from upstream. These are reusable project-specific
+learnings worth recording. Compare the current codex-buddy `HEAD` and project
+docs against `upstream/main`:
 
 ```bash
-# Files under docs/ that differ from upstream (created or changed on the fork)
+# Project docs that differ from upstream (created or changed in codex-buddy)
 git diff --name-only upstream/main...HEAD -- docs/
 
-# Files under docs/ that exist here but not on upstream main
+# Project docs that exist in codex-buddy but not on upstream main
 comm -23 \
   <(git ls-tree -r --name-only HEAD -- docs/ | sort) \
   <(git ls-tree -r --name-only upstream/main -- docs/ | sort)
@@ -78,10 +80,10 @@ comm -23 \
 
 From the differing documents, extract only durable, reusable learnings:
 
-- What the fork documents or changes that upstream does not, and why.
-- Hardware facts, interfaces, timings, resource budgets, or failure behavior the
-  fork recorded.
-- Build, validation, or release-flow improvements the fork made.
+- What codex-buddy documents or changes that upstream does not, and why.
+- Hardware facts, interfaces, timings, resource budgets, or failure behavior
+  recorded in the project docs.
+- Build, validation, or release-flow improvements made in the project.
 - Generalizations that apply to the next release.
 
 Do **not** preserve transient debugging notes, half-finished experiments, or
@@ -89,22 +91,24 @@ anything that explains only this one-off release.
 
 ## Route the experience
 
-Not every fork difference belongs upstream. Decide where each learning belongs
-before submitting:
+Not every project-specific difference belongs upstream. Decide where each
+learning belongs before submitting:
 
 - **Upstream the reusable, general experience** — learnings that benefit any
   AI Passport user and belong in the upstream baseline (for example general
   build/validation improvements, durable hardware facts open to upstream,
   reusable interfaces or release-flow improvements). Submit these as a PR to the
   upstream `FoloToy/ai-passport`.
-- **Keep fork-specific customization in the fork** — product-customized
-  content, fork-private business rules, or fork-only assets that `fork-guide.md`
-  says must not be proposed back to upstream. Do **not** submit these upstream;
-  record them as a local documentation change instead (see
-  [`docs/fork-guide.md`](../../docs/fork-guide.md) and the fork README / `docs/assets/`).
+- **Keep project-specific customization in codex-buddy** — product-customized
+  content, project-private business rules, or project-only assets that must not
+  be proposed back to upstream. Do **not** submit these upstream; record them
+  in the independent project as a local documentation change. Rules in
+  [`docs/fork-guide.md`](../../docs/fork-guide.md) apply only to actual
+  downstream forks that follow that guide.
 
-Route each entry according to this split; do not send fork-specific
-customization to the upstream PR.
+Route each entry according to this split; do not send project-specific
+customization to the upstream PR. The codex-buddy `origin` is the independent
+project remote; upstream contribution work uses a separate contribution fork.
 
 ## Write the experience entry
 
@@ -134,7 +138,7 @@ developer's current branch.
 2. On approval, commit on the dedicated branch (English imperative Conventional
    Commit title, for example
    `docs(development): add post-release experience notes`) and push it to the
-   developer's fork (`origin`).
+   separate upstream-contribution fork remote, not `codex-buddy`'s `origin`.
 3. Fill the upstream `.github/PULL_REQUEST_TEMPLATE.md` completely, in English,
    and report Build, Host tests, Device tests, and Unverified separately.
 4. Ask for separate confirmation, then open the PR from the fork branch against

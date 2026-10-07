@@ -13,7 +13,7 @@
 当开发者说"发布"或"发版"时，第一件事是决定**发到哪里**。不要默认其中一条。
 
 - **发布到社区** —— 把固件发布到 [AI Passport 社区市场](https://ai-passport.folotoy.cn)。走下面的 publisher 工作流；发布后见[项目开发完成流程](project-completion.zh_CN.md)。
-- **发布到 Git** —— 把开发完成的代码发布到版本仓库。逻辑：先**提交**完成后的代码，再为它**开 release 流程**。release 产物可由 **CI/CD 流水线生成（推荐）**，tag 触发 `.github/workflows/build-firmware.yml` 自动构建；也**可用开发者本地已构建的 `.bin` 文件**。遵循仓库提交与 PR 规则（`docs/contribution/commit-and-pr.md`）与 fork 工作流（`docs/fork-guide.md`）；自动构建与产物见 [`CI-build-and-release.md`](../ci/CI-build-and-release.zh_CN.md)。
+- **发布到 Git** —— 把开发完成的代码发布到版本仓库。逻辑：先**提交**完成后的代码，再为它**开 release 流程**。release 产物可由 **CI/CD 流水线生成（推荐）**，tag 触发 `.github/workflows/build-firmware.yml` 自动构建；也**可用开发者本地已构建的 `.bin` 文件**。本独立仓库应发布到已配置的项目 remote；实际的下游 fork 可遵循[fork 工作流](../../fork-guide.zh_CN.md)。构建与产物见[自动构建与发布](../ci/CI-build-and-release.zh_CN.md)。
 - **还没到发布时机** —— 代码尚未开发完成、不能使用；继续开发，不发布。
 
 该工作流由官方发布 skill 驱动。运行一次提示词，让助手从官方包安装 skill；仓库无需提交任何东西。
@@ -35,7 +35,7 @@ skill 的 `SKILL.md` 定义了精确流程：检查项目、准备中英文标�
   且必须通过 `./tools/validate.sh --firmware` 与[当前配置的固件布局](../engineering/firmware-layout.zh_CN.md)。
   不得用 `idf.py build` 生成的应用单镜像替代。
 - **封面**：一张代表产品的 JPEG / PNG / WebP 图（≤ 10 MiB）。
-- **源码**：固件仓库的公开 HTTPS Git 项目页——GitHub、Gitee、GitLab、Codeberg 或其它公开可达的 HTTPS Git 仓库页。fork 所有者从其 fork 的来源页发布，从 `git remote -v` 解析。
+- **源码**：固件仓库的公开 HTTPS Git 项目页——GitHub、Gitee、GitLab、Codeberg 或其它公开可达的 HTTPS Git 仓库页。独立项目发布其自身项目仓库 URL；实际 fork 发布其 fork 仓库 URL。对于 `codex-buddy`，源码是其已配置的项目 remote `origin`（`https://github.com/jumpjumptiger007/codex-buddy`）。应根据已配置的 remote 有意解析并核实公开 HTTPS URL 及仓库可见性；不要假定每个项目都是 fork。
 
 ## 安全与边界
 

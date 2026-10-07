@@ -75,8 +75,10 @@ An entry is a single `.md` file (with its `.zh_CN.md` peer) stored flat under
 `docs/reference/<username>/` and named after the entry's content summary in
 lowercase-kebab-case (e.g. `audio-compression-trade-offs.md`), describing the
 topic rather than an opaque timestamp. Each entry is routed before submission:
-general, upstream-benefiting experience goes to the upstream
-`FoloToy/ai-passport` as a PR; fork-specific customization stays in the fork per
+general, reusable experience that benefits upstream may be proposed to
+`FoloToy/ai-passport` as a PR. Project-specific customization remains in the
+independent `codex-buddy` project and is not sent upstream. For an actual
+downstream fork, fork-specific customization follows
 [`docs/fork-guide.md`](../fork-guide.md).
 
 ## Archiving an application

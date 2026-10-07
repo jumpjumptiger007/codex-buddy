@@ -18,8 +18,9 @@ second development; the fork conventions are in
 - Follow [`CODE_OF_CONDUCT.md`](/.github/CODE_OF_CONDUCT.md) when participating in the
   community. For ordinary usage questions, see [`SUPPORT.md`](/.github/SUPPORT.md).
 - Do not commit credentials, tokens, authorization files, or personal data.
-- The repository's `main` branch stays in sync with the upstream baseline; fork
-  users develop feature work in `feature/*` branches (see `docs/fork-guide.md`).
+- This independent repository's `main` tracks `origin/main`; review upstream
+  changes before deliberate integration. Actual downstream forks may follow
+  [`docs/fork-guide.md`](/docs/fork-guide.md).
 
 ## Development and verification
 
